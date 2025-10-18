@@ -1,5 +1,8 @@
-import { fn } from '../src';
+import { state, effect, immediate, cleanup } from '../src';
 
-test('fn', () => {
-  expect(fn()).toBe('Hello, tsdown!');
+test('index', () => {
+  expect(state).toBeDefined();
+  expect(effect).toBeDefined();
+  expect(immediate).toBeDefined();
+  expect(cleanup).toBeDefined();
 });

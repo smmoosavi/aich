@@ -1,0 +1,50 @@
+import { getCurrentEffect, withEffect, type Effect } from './effect';
+import { getRoot } from './root';
+
+declare module './root' {
+  interface Root {
+    effectCleanups?: WeakMap<Effect, Set<Effect>>;
+  }
+}
+
+export function cleanup(effect: Effect): void {
+  addCleanupEffect(effect);
+}
+
+export function getCleanups(): WeakMap<Effect, Set<Effect>> {
+  const root = getRoot();
+  if (!root.effectCleanups) {
+    root.effectCleanups = new WeakMap();
+  }
+  return root.effectCleanups;
+}
+
+export function addCleanupEffect(cleanup: Effect) {
+  const cleanups = getCleanups();
+  const parent = getCurrentEffect();
+  if (!parent) {
+    throw new Error('cleanup() must be called within an executing effect');
+  }
+  let cleanupSet = cleanups.get(parent);
+  if (!cleanupSet) {
+    cleanupSet = new Set();
+    cleanups.set(parent, cleanupSet);
+  }
+  cleanupSet.add(cleanup);
+}
+
+export function runCleanups(effect: Effect) {
+  withEffect(undefined, () => {
+    const cleanups = getCleanups();
+    const effectCleanups = cleanups.get(effect);
+    if (effectCleanups) {
+      Array.from(effectCleanups)
+        .reverse()
+        .forEach((cleanupEffect) => {
+          effectCleanups.delete(cleanupEffect);
+          cleanupEffect();
+        });
+    }
+    cleanups.delete(effect);
+  });
+}
