@@ -1,4 +1,5 @@
 import { runEffect, type Effect } from './effect';
+import { forEach } from './iter';
 import { getRoot } from './root';
 
 declare module './root' {
@@ -37,10 +38,14 @@ export function dropEffect(effect: Effect) {
 export function flush() {
   const root = getRoot();
   const queue = getQueue();
-  for (const effect of queue) {
-    runEffect(effect);
+
+  try {
+    forEach(queue, (effect) => {
+      runEffect(effect);
+    });
+  } finally {
+    root.flush = undefined;
   }
-  root.flush = undefined;
 }
 
 export function assertQueueEmpty() {

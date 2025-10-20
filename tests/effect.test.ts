@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { effect, state } from '../src';
+import { effect } from '../src';
 import { assertQueueEmpty } from '../src/queue';
 import { createLogStore } from './log';
 import { wait } from './wait';
@@ -75,23 +75,5 @@ describe('effect', () => {
       'effect level 2 end',
       'effect level 3 ran',
     ]);
-  });
-
-  test.skip('error in effect does not break others', async () => {
-    const logs = createLogStore();
-    let count = state(0);
-    effect(() => {
-      logs.push(`effect 1 ran with ${count()}`);
-    });
-    effect(() => {
-      throw new Error('test error');
-    });
-    effect(() => {
-      logs.push(`effect 2 ran with ${count()}`);
-    });
-    expect(logs.take()).toEqual([]);
-    await wait();
-    assertQueueEmpty();
-    expect(logs.take()).toEqual(['effect 1 ran with 0', 'effect 2 ran with 0']);
   });
 });

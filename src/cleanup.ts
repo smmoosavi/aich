@@ -1,4 +1,5 @@
 import { getCurrentEffect, withEffect, type Effect } from './effect';
+import { forEach } from './iter';
 import { getRoot } from './root';
 
 declare module './root' {
@@ -37,14 +38,15 @@ export function runCleanups(effect: Effect) {
   withEffect(undefined, () => {
     const cleanups = getCleanups();
     const effectCleanups = cleanups.get(effect);
-    if (effectCleanups) {
-      Array.from(effectCleanups)
-        .reverse()
-        .forEach((cleanupEffect) => {
-          effectCleanups.delete(cleanupEffect);
-          cleanupEffect();
+    try {
+      if (effectCleanups) {
+        forEach(Array.from(effectCleanups).reverse(), (cleanup) => {
+          effectCleanups.delete(cleanup);
+          cleanup();
         });
+      }
+    } finally {
+      cleanups.delete(effect);
     }
-    cleanups.delete(effect);
   });
 }
