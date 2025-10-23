@@ -4,6 +4,7 @@ import { dropEffect, enqueue } from './queue';
 import { getRoot } from './root';
 import { clearEffectSubs } from './sub';
 
+/** @internal */
 declare module './root' {
   interface Root {
     currentEffect?: Effect | null;

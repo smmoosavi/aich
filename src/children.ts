@@ -1,6 +1,7 @@
 import { disposeEffect, type Effect } from './effect';
 import { getRoot } from './root';
 
+/** @internal */
 declare module './root' {
   interface Root {
     effectChildren?: WeakMap<Effect, Set<Effect>>;

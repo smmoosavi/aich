@@ -3,6 +3,7 @@ import { enqueue } from './queue';
 import { getRoot } from './root';
 import type { State } from './state';
 
+/** @internal */
 declare module './root' {
   interface Root {
     subs?: Subs;

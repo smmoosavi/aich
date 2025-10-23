@@ -2,6 +2,7 @@ import { runEffect, type Effect } from './effect';
 import { forEach } from './iter';
 import { getRoot } from './root';
 
+/** @internal */
 declare module './root' {
   interface Root {
     queue?: Queue;
