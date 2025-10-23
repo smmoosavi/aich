@@ -1,4 +1,12 @@
-import { state, effect, immediate, cleanup, onError, untrack, flush } from '../src';
+import {
+  state,
+  effect,
+  immediate,
+  cleanup,
+  onError,
+  untrack,
+  flush,
+} from '../src';
 
 test('index', () => {
   expect(state).toBeDefined();
