@@ -28,7 +28,7 @@ export function immediate(fn: Effect) {
   enqueue(fn);
   root.currentEffect && addChildEffect(root.currentEffect, fn);
   root.currentEffect && addChildCatch(root.currentEffect, fn);
-  runEffect(fn);  
+  runEffect(fn);
   return addEffectDispose(fn);
 }
 
