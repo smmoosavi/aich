@@ -17,7 +17,12 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "jsx": "react-jsx",
-    "jsxImportSource": "."
+    "jsxImportSource": "aich",
+    "baseUrl": ".",
+    "paths": {
+      "aich/jsx-runtime": ["src/jsx-runtime.ts"],
+      "aich/jsx-dev-runtime": ["src/jsx-dev-runtime.ts"]
+    }
   },
   "include": ["src", "tests"]
 }
