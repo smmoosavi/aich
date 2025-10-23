@@ -9,6 +9,7 @@ import { clearEffectSubs } from './sub';
 declare module './root' {
   interface Root {
     currentEffect?: Effect | null;
+    effectsByDispose?: WeakMap<() => void, Effect>;
   }
 }
 
@@ -19,9 +20,7 @@ export function effect(fn: Effect) {
   enqueue(fn);
   root.currentEffect && addChildEffect(root.currentEffect, fn);
   root.currentEffect && addChildCatch(root.currentEffect, fn);
-  return () => {
-    disposeEffect(fn);
-  };
+  return addEffectDispose(fn);
 }
 
 export function immediate(fn: Effect) {
@@ -29,10 +28,20 @@ export function immediate(fn: Effect) {
   enqueue(fn);
   root.currentEffect && addChildEffect(root.currentEffect, fn);
   root.currentEffect && addChildCatch(root.currentEffect, fn);
-  runEffect(fn);
-  return () => {
-    disposeEffect(fn);
+  runEffect(fn);  
+  return addEffectDispose(fn);
+}
+
+export function addEffectDispose(effect: Effect) {
+  const dispose = () => {
+    disposeEffect(effect);
   };
+  const root = getRoot();
+  if (!root.effectsByDispose) {
+    root.effectsByDispose = new WeakMap();
+  }
+  root.effectsByDispose.set(dispose, effect);
+  return dispose;
 }
 
 export function disposeEffect(effect: Effect) {
