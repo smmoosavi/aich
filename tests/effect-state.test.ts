@@ -360,4 +360,79 @@ describe('effect with state', () => {
     assertQueueEmpty();
     expect(logs.take()).toEqual([]);
   });
+  test('effect chain', async () => {
+    // this is a bad practice, just for testing edge case
+    const logs = createLogStore();
+    const a = state(1);
+    const b = state(a() + 1);
+    effect(() => {
+      logs.push(`before: a=${a()}, b=${b()}`);
+    });
+    effect(() => {
+      logs.push(`effect A ran with ${a()}`);
+      b(a() + 1);
+    });
+    effect(() => {
+      logs.push(`middle: a=${a()}, b=${b()}`);
+    });
+    effect(() => {
+      logs.push(`effect B ran with ${b()}`);
+    });
+
+    await wait();
+    expect(logs.take()).toEqual([
+      'before: a=1, b=2',
+      'effect A ran with 1',
+      'middle: a=1, b=2',
+      'effect B ran with 2',
+    ]);
+
+    a(2);
+    await wait();
+    expect(logs.take()).toEqual([
+      'before: a=2, b=2',
+      'effect A ran with 2',
+      'middle: a=2, b=3',
+      'effect B ran with 3',
+      'before: a=2, b=3',
+    ]);
+  });
+  test('self setting state in effect', async () => {
+    // this is a bad practice, just for testing edge case
+    const logs = createLogStore();
+    const count = state(0);
+    const dispose = effect(() => {
+      const c = count();
+      logs.push(`effect ran with ${c}`);
+      if (c < 3) {
+        count(c + 1);
+      }
+    });
+    expect(logs.take()).toEqual([]);
+    await wait();
+    assertQueueEmpty();
+    expect(logs.take()).toEqual([
+      'effect ran with 0',
+      'effect ran with 1',
+      'effect ran with 2',
+      'effect ran with 3',
+    ]);
+
+    count(1);
+    expect(logs.take()).toEqual([]);
+    await wait();
+    assertQueueEmpty();
+    expect(logs.take()).toEqual([
+      'effect ran with 1',
+      'effect ran with 2',
+      'effect ran with 3',
+    ]);
+
+    dispose();
+    count(0);
+    expect(logs.take()).toEqual([]);
+    await wait();
+    assertQueueEmpty();
+    expect(logs.take()).toEqual([]);
+  });
 });
