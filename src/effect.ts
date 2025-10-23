@@ -1,5 +1,6 @@
 import { addChildEffect, disposeChildEffects } from './children';
 import { runCleanups } from './cleanup';
+import { addChildCatch, catchError, disposeEffectCatch } from './on-error';
 import { dropEffect, enqueue } from './queue';
 import { getRoot } from './root';
 import { clearEffectSubs } from './sub';
@@ -17,6 +18,7 @@ export function effect(fn: Effect) {
   const root = getRoot();
   enqueue(fn);
   root.currentEffect && addChildEffect(root.currentEffect, fn);
+  root.currentEffect && addChildCatch(root.currentEffect, fn);
   return () => {
     disposeEffect(fn);
   };
@@ -26,6 +28,7 @@ export function immediate(fn: Effect) {
   const root = getRoot();
   enqueue(fn);
   root.currentEffect && addChildEffect(root.currentEffect, fn);
+  root.currentEffect && addChildCatch(root.currentEffect, fn);
   runEffect(fn);
   return () => {
     disposeEffect(fn);
@@ -37,6 +40,7 @@ export function disposeEffect(effect: Effect) {
   disposeChildEffects(effect);
   runCleanups(effect);
   clearEffectSubs(effect);
+  disposeEffectCatch(effect);
 }
 
 export function getCurrentEffect(): Effect | null {
@@ -50,12 +54,14 @@ export function runEffect(effect: Effect) {
   });
 }
 
-export function withEffect<T>(effect: Effect | undefined, fn: () => T): T {
+export function withEffect(effect: Effect | undefined, fn: () => void): void {
   const root = getRoot();
   const lastEffect = root.currentEffect;
   root.currentEffect = effect;
   try {
-    return fn();
+    fn();
+  } catch (e) {
+    catchError(e, effect);
   } finally {
     root.currentEffect = lastEffect;
   }

@@ -5,7 +5,7 @@ import { catchUncatched } from './catchUncatched';
 import { createLogStore } from './log';
 import { wait } from './wait';
 
-describe.sequential('error', () => {
+describe('error', () => {
   test('error in effect', async () => {
     const logs = createLogStore();
     effect(() => {
@@ -22,9 +22,9 @@ describe.sequential('error', () => {
   });
   test('error in cleanup', async () => {
     const logs = createLogStore();
-    const dispose = effect(function xxx() {
+    const dispose = effect(() => {
       logs.push('effect ran');
-      cleanup(function ccc() {
+      cleanup(() => {
         logs.push('cleanup ran');
         throw new Error('Test error');
       });

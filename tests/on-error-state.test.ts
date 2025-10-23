@@ -1,16 +1,17 @@
-import { cleanup, effect, immediate, state } from '../src';
+import { cleanup, effect, immediate, onError, state } from '../src';
 import { assertQueueEmpty } from '../src/queue';
-import { catchUncatched } from './catchUncatched';
 import { createLogStore } from './log';
 import { wait } from './wait';
 
-describe('error with state', () => {
+describe('on error with state', () => {
   test('error in effect', async () => {
     const logs = createLogStore();
-    const handle = catchUncatched();
     const count = state(1);
 
     effect(() => {
+      onError((e) => {
+        logs.push(`caught error ${e.message}`);
+      });
       let c = count();
       logs.push(`effect ran ${c}`);
       if (c % 2 === 0) {
@@ -24,26 +25,26 @@ describe('error with state', () => {
 
     count(2);
     await wait();
-    expect(logs.take()).toEqual(['effect ran 2']);
-
-    await wait(0);
-    const errors = handle.takeErrors();
-    expect(errors).toHaveLength(1);
-    expect(errors[0].message).toBe('Test error 2');
-    assertQueueEmpty();
+    expect(logs.take()).toEqual(['effect ran 2', 'caught error Test error 2']);
 
     count(3);
     await wait();
     expect(logs.take()).toEqual(['effect ran 3']);
+
+    count(4);
+    await wait();
+    expect(logs.take()).toEqual(['effect ran 4', 'caught error Test error 4']);
     assertQueueEmpty();
   });
 
   test('error in immediate', async () => {
     const logs = createLogStore();
-    const handle = catchUncatched();
     const count = state(1);
 
     immediate(() => {
+      onError((e) => {
+        logs.push(`caught error ${e.message}`);
+      });
       let c = count();
       logs.push(`effect ran ${c}`);
       if (c % 2 === 0) {
@@ -55,17 +56,15 @@ describe('error with state', () => {
 
     count(2);
     await wait();
-    expect(logs.take()).toEqual(['effect ran 2']);
-
-    await wait(0);
-    const errors = handle.takeErrors();
-    expect(errors).toHaveLength(1);
-    expect(errors[0].message).toBe('Test error 2');
-    assertQueueEmpty();
+    expect(logs.take()).toEqual(['effect ran 2', 'caught error Test error 2']);
 
     count(3);
     await wait();
     expect(logs.take()).toEqual(['effect ran 3']);
+
+    count(4);
+    await wait();
+    expect(logs.take()).toEqual(['effect ran 4', 'caught error Test error 4']);
     assertQueueEmpty();
   });
 
@@ -73,6 +72,9 @@ describe('error with state', () => {
     const logs = createLogStore();
     const count = state(1);
     const dispose = effect(() => {
+      onError((e) => {
+        logs.push(`caught error ${e.message}`);
+      });
       const c = count();
       logs.push(`effect ran ${c}`);
       cleanup(() => {
@@ -88,19 +90,18 @@ describe('error with state', () => {
     count(2);
     await wait();
     expect(logs.take()).toEqual(['cleanup ran 1', 'effect ran 2']);
-    expect(() => {
-      dispose();
-    }).toThrow('Test error 2');
-    expect(logs.take()).toEqual(['cleanup ran 2']);
+    dispose();
+    expect(logs.take()).toEqual(['cleanup ran 2', 'caught error Test error 2']);
     assertQueueEmpty();
   });
 
-  test.fails('error in cleanup by rerun', async () => {
+  test('error in cleanup by rerun', async () => {
     const logs = createLogStore();
-    const handle = catchUncatched();
-
     const count = state(1);
     effect(() => {
+      onError((e) => {
+        logs.push(`caught error ${e.message}`);
+      });
       const c = count();
       logs.push(`effect ran ${c}`);
       effect(() => {
@@ -126,39 +127,21 @@ describe('error with state', () => {
 
     count(3);
     await wait();
-    expect(logs.take()).noBail.toEqual([
+    expect(logs.take()).toEqual([
       'cleanup ran 2',
+      'caught error Test error 2',
       'effect ran 3',
-      'child effect ran', // expected but missing
+      'child effect ran',
     ]);
     assertQueueEmpty();
-
-    await wait(0);
-    const errors = handle.takeErrors();
-    expect(errors).toHaveLength(1);
-    expect(errors[0].message).toBe('Test error 2');
 
     count(4);
     await wait();
     expect(logs.take()).toEqual([
-      // 'cleanup ran 3',
+      'cleanup ran 3',
       'effect ran 4',
       'child effect ran',
     ]);
-
-    count(5);
-    await wait();
-    expect(logs.take()).noBail.toEqual([
-      'cleanup ran 4',
-      'effect ran 5',
-      'child effect ran', // expected but missing
-    ]);
-
-    await wait(0);
-    const errors3 = handle.takeErrors();
-    expect(errors3).toHaveLength(1);
-    expect(errors3[0].message).toBe('Test error 4');
-
     assertQueueEmpty();
   });
 });

@@ -1,5 +1,6 @@
 import { getCurrentEffect, withEffect, type Effect } from './effect';
 import { forEach } from './iter';
+import { addChildCatch, catchError } from './on-error';
 import { getRoot } from './root';
 
 /** @internal */
@@ -27,6 +28,7 @@ export function addCleanupEffect(cleanup: Effect) {
   if (!parent) {
     throw new Error('cleanup() must be called within an executing effect');
   }
+  addChildCatch(parent, cleanup);
   let cleanupSet = cleanups.get(parent);
   if (!cleanupSet) {
     cleanupSet = new Set();
@@ -43,7 +45,11 @@ export function runCleanups(effect: Effect) {
       if (effectCleanups) {
         forEach(Array.from(effectCleanups).reverse(), (cleanup) => {
           effectCleanups.delete(cleanup);
-          cleanup();
+          try {
+            cleanup();
+          } catch (e) {
+            catchError(e, cleanup);
+          }
         });
       }
     } finally {
