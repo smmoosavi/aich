@@ -72,3 +72,17 @@ export function clearEffectSubs(effect: Effect) {
     subs.byEffect.delete(effect);
   }
 }
+
+export function untrack<T>(fn: () => T): T {
+  const subs = getSubs();
+  const originalByEffect = subs.byEffect;
+  const originalByState = subs.byState;
+  subs.byEffect = new WeakMap();
+  subs.byState = new WeakMap();
+  try {
+    return fn();
+  } finally {
+    subs.byEffect = originalByEffect;
+    subs.byState = originalByState;
+  }
+}
