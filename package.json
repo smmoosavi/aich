@@ -31,6 +31,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
     "@types/node": "^24.7.2",
     "@vitest/coverage-v8": "3.2.4",
     "@vitest/ui": "3.2.4",
