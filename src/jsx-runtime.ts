@@ -1,3 +1,5 @@
+import type { Thunk } from './value';
+
 // JSX Element Type
 export interface JSXElement {
   type: string | Function;
@@ -14,8 +16,10 @@ export type JSXChild =
   | null
   | undefined;
 
+export type LazyJSXChild = JSXChild | Thunk<JSXChild>;
+
 export interface JSXProps {
-  children?: JSXChild | JSXChild[];
+  children?: LazyJSXChild | LazyJSXChild[];
   key?: string | number | null;
   [prop: string]: any;
 }
