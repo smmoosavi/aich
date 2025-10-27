@@ -14,8 +14,9 @@ declare module './root' {
 }
 
 export type Effect = () => void;
+export type Dispose = () => void;
 
-export function effect(fn: Effect) {
+export function effect(fn: Effect): Dispose {
   const root = getRoot();
   enqueue(fn);
   root.currentEffect && addChildEffect(root.currentEffect, fn);
@@ -23,7 +24,7 @@ export function effect(fn: Effect) {
   return addEffectDispose(fn);
 }
 
-export function immediate(fn: Effect) {
+export function immediate(fn: Effect): Dispose {
   const root = getRoot();
   enqueue(fn);
   root.currentEffect && addChildEffect(root.currentEffect, fn);
@@ -32,7 +33,7 @@ export function immediate(fn: Effect) {
   return addEffectDispose(fn);
 }
 
-export function addEffectDispose(effect: Effect) {
+export function addEffectDispose(effect: Effect): Dispose {
   const dispose = () => {
     disposeEffect(effect);
   };
