@@ -1,3 +1,5 @@
+import type { Brand } from './brand';
+
 /**
  * A generic interface describing a rendering backend.
  *
@@ -40,3 +42,35 @@ export interface Renderer<
     listener: EventListener,
   ): void;
 }
+
+// --- Type utilities to extract specific types from a Renderer ---
+
+export type RendererElement<R> =
+  R extends Renderer<any, infer TElement, any, any> ? TElement : never;
+
+export type RendererText<R> =
+  R extends Renderer<any, any, infer TText, any> ? TText : never;
+
+export type RendererComment<R> =
+  R extends Renderer<any, any, any, infer TComment> ? TComment : never;
+
+export type RendererNode<R> =
+  R extends Renderer<infer TNode, any, any, any> ? TNode : never;
+
+/*
+ * Placeholder types representing any TElement, TText, and TComment.
+ */
+
+export type AnyTElement = Brand<'TElement'>;
+export type AnyTText = Brand<'TText'>;
+export type AnyTComment = Brand<'TComment'>;
+export type AnyTNode = AnyTElement | AnyTText | AnyTComment;
+/*
+ * A placeholder type representing any renderer.
+ */
+export type AnyRenderer = Renderer<
+  AnyTNode,
+  AnyTElement,
+  AnyTText,
+  AnyTComment
+>;
