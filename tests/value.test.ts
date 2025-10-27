@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { isThunk, resolveValue, immediateValue } from '../src/value';
+import { isThunk, resolveValue, immediateValue, mapValue } from '../src/value';
 import { flush, state } from '../src';
-import { wait } from './wait';
 
 describe('value', () => {
   describe('isThunk', () => {
@@ -83,6 +82,30 @@ describe('value', () => {
       flush();
       // after dispose, should not run again
       expect(runs).toBe(prevRuns);
+    });
+  });
+
+  describe('mapValue', () => {
+    it('should map a non-thunk value eagerly', () => {
+      const mapped = mapValue(2, (v) => v * 2);
+      expect(mapped).toBe(4);
+    });
+
+    it('should return a lazy mapper for thunks and not invoke original until called', () => {
+      let executed = false;
+      const thunk = () => {
+        executed = true;
+        return 3;
+      };
+
+      const mapped = mapValue(thunk, (v) => v + 1);
+      // mapped should be a thunk (lazy)
+      expect(typeof mapped).toBe('function');
+      expect(executed).toBe(false);
+
+      const result = (mapped as Function)();
+      expect(result).toBe(4);
+      expect(executed).toBe(true);
     });
   });
 });

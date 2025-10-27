@@ -22,3 +22,14 @@ export function immediateValue<T>(value: Value<T>): [T, Dispose] {
     return [value, () => {}];
   }
 }
+
+export function mapValue<T, U>(
+  value: Value<T>,
+  mapper: (val: T) => U,
+): Value<U> {
+  if (isThunk(value)) {
+    return () => mapper(value());
+  } else {
+    return mapper(value);
+  }
+}
