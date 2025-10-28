@@ -31,7 +31,7 @@ export interface IntrinsicJsxElement {
 }
 
 export interface JSXElement {
-  type: string | ComponentFunction;
+  type: string | ComponentFunction | typeof FRAGMENT;
   props: Record<string, any>;
   key: Key;
 }
@@ -133,15 +133,19 @@ export function jsxDEV(
   };
 }
 
+export const FRAGMENT = Symbol.for('aich.fragment');
 /**
  * Fragment Component
  * Used for grouping elements without a wrapper
  */
-export function Fragment(props: { children?: any, key?: string | number | null }): JSXElement {
+export function Fragment(props: {
+  children?: any;
+  key?: string | number | null;
+}): JSXElement {
   console.log('Fragment() called:', props);
 
   return {
-    type: Fragment,
+    type: FRAGMENT,
     props: props || {},
     key: props.key ?? null,
   };
@@ -195,6 +199,10 @@ export function isIntrinsicJsxElement(
   el: JSXElement,
 ): el is IntrinsicJsxElement {
   return typeof el.type === 'string';
+}
+
+export function isFragmentJsxElement(el: JSXElement): boolean {
+  return el.type === FRAGMENT;
 }
 
 /**

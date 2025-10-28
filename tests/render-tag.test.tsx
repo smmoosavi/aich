@@ -3,18 +3,24 @@ import { render } from '../src/dom';
 describe('render', () => {
   it('should render text node', () => {
     const container = document.createElement('div');
-    render(container, 'Hello World');
+    const unmount = render(container, 'Hello World');
     expect(container.innerHTML).toMatchInlineSnapshot(`"Hello World"`);
+
+    unmount();
+    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
   });
   it('should render thunk text node', () => {
     const container = document.createElement('div');
-    render(container, () => 'Hello World');
+    const unmount = render(container, () => 'Hello World');
     expect(container.innerHTML).toMatchInlineSnapshot(`"Hello World"`);
+
+    unmount();
+    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
   });
   it('should render state text node', () => {
     const container = document.createElement('div');
     const name = state('World');
-    render(container, () => `Hello ${name()}`);
+    const unmount = render(container, () => `Hello ${name()}`);
     expect(container.innerHTML).toMatchInlineSnapshot(`"Hello World"`);
 
     name('Universe');
@@ -22,34 +28,60 @@ describe('render', () => {
 
     flush();
     expect(container.innerHTML).toMatchInlineSnapshot(`"Hello Universe"`);
-  });
 
-  it('should render empty content', () => {
-    const container = document.createElement('div');
-    render(container, null);
+    unmount();
     expect(container.innerHTML).toMatchInlineSnapshot(`""`);
 
-    render(container, undefined);
+    name('Multiverse');
+    flush();
+    // unmounted, should not update
+    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+  });
+
+  it('should render empty null', () => {
+    const container = document.createElement('div');
+    const unmount = render(container, null);
+    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+
+    unmount();
+    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+  });
+  it('should render empty undefined', () => {
+    const container = document.createElement('div');
+    const unmount = render(container, undefined);
+    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+
+    unmount();
     expect(container.innerHTML).toMatchInlineSnapshot(`""`);
   });
 
   it('should render empty element', () => {
     const container = document.createElement('div');
-    render(container, <div />);
+    const unmount = render(container, <div />);
     expect(container.innerHTML).toMatchInlineSnapshot(`"<div></div>"`);
+
+    unmount();
+    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
   });
 
   it('should render a simple element', () => {
     const container = document.createElement('div');
-    render(container, <div>Hello World</div>);
+    const unmount = render(container, <div>Hello World</div>);
     expect(container.innerHTML).toMatchInlineSnapshot(
       `"<div>Hello World</div>"`,
     );
+    console.log('--unmount--');
+    try {
+      unmount();
+    } catch (error) {
+      console.error('Error during unmount:', error);
+    }
+    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
   });
 
   it('should render a thunk element', () => {
     const container = document.createElement('div');
-    render(container, () => <div>Hello World</div>);
+    const unmount = render(container, () => <div>Hello World</div>);
     expect(container.innerHTML).toMatchInlineSnapshot(
       `"<div>Hello World</div>"`,
     );
@@ -58,14 +90,14 @@ describe('render', () => {
   it('should render const content', () => {
     const container = document.createElement('div');
     const name = 'World';
-    render(container, <div>Hello {name}</div>);
+    const unmount = render(container, <div>Hello {name}</div>);
     expect(container.innerHTML).toMatchInlineSnapshot(
       `"<div>Hello World</div>"`,
     );
   });
   it('should render number/boolean/null/undefined content', () => {
     const container = document.createElement('div');
-    render(
+    const unmount = render(
       container,
       <div>
         zero '{0}', number '{42}', true '{true}', false '{false}', null '{null}
@@ -79,7 +111,7 @@ describe('render', () => {
   it('should render thunk content', () => {
     const container = document.createElement('div');
     const name = 'World';
-    render(container, <div>Hello {() => name}</div>);
+    const unmount = render(container, <div>Hello {() => name}</div>);
     expect(container.innerHTML).toMatchInlineSnapshot(
       `"<div>Hello World</div>"`,
     );
@@ -88,7 +120,7 @@ describe('render', () => {
   it('should render state content', () => {
     const container = document.createElement('div');
     const name = state('World');
-    render(container, <div>Hello {name}</div>);
+    const unmount = render(container, <div>Hello {name}</div>);
     expect(container.innerHTML).toMatchInlineSnapshot(
       `"<div>Hello World</div>"`,
     );

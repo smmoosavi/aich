@@ -22,5 +22,5 @@ function _render(
   const ctx: RenderContext = { renderer, parent: container };
   return withRenderContext(ctx, () => {
     return renderNode(content);
-  })
+  });
 }

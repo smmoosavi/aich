@@ -16,7 +16,7 @@ export interface RenderContext {
   parent: AnyTElement;
   lastJsxNode?: JSXChild;
   lastNode?: AnyTNode;
-  childrenCtxs?: Record<string, RenderContext>;
+  childrenCtxs?: Map<string | number, RenderContext>;
   unmount?: UnmountFn;
 }
 
@@ -39,16 +39,16 @@ export function withRenderContext<T>(context: RenderContext, fn: () => T): T {
   }
 }
 
-export function getChildContext(key: string): RenderContext {
+export function getChildContext(key: string | number): RenderContext {
   const ctx = getRenderContext();
   if (ctx.childrenCtxs === undefined) {
-    ctx.childrenCtxs = {};
+    ctx.childrenCtxs = new Map<string | number, RenderContext>();
   }
-  if (ctx.childrenCtxs[key] === undefined) {
-    ctx.childrenCtxs[key] = {
+  if (!ctx.childrenCtxs.has(key)) {
+    ctx.childrenCtxs.set(key, {
       renderer: ctx.renderer,
       parent: ctx.parent,
-    };
+    });
   }
-  return ctx.childrenCtxs[key];
+  return ctx.childrenCtxs.get(key)!;
 }
