@@ -1,12 +1,5 @@
 import type { Thunk } from './value';
 
-// JSX Element Type
-export interface JSXElement {
-  type: string | Function;
-  props: Record<string, any>;
-  key: string | number | null;
-}
-
 // Props with children and key
 export type JSXChild =
   | JSXElement
@@ -17,6 +10,29 @@ export type JSXChild =
   | undefined;
 
 export type LazyJSXChild = JSXChild | Thunk<JSXChild>;
+
+// Component type that returns LazyJSXChild
+export type ComponentFunction = (props: any) => LazyJSXChild;
+
+// JSX Element Type
+
+export interface CommentJsxElement {
+  type: ComponentFunction;
+  props: Record<string, any>;
+  key: string | number | null;
+}
+
+export interface IntrinsicJsxElement {
+  type: string;
+  props: Record<string, any>;
+  key: string | number | null;
+}
+
+export interface JSXElement {
+  type: string | ComponentFunction;
+  props: Record<string, any>;
+  key: string | number | null;
+}
 
 export interface JSXProps {
   children?: LazyJSXChild | LazyJSXChild[];
@@ -48,7 +64,7 @@ declare global {
  * Used by JSX transform for elements
  */
 export function jsx(
-  type: string | Function,
+  type: string | ComponentFunction,
   props: JSXProps,
   key?: string | number | null,
 ): JSXElement {
@@ -70,7 +86,7 @@ export function jsx(
  * Used by JSX transform for elements with static children
  */
 export function jsxs(
-  type: string | Function,
+  type: string | ComponentFunction,
   props: JSXProps,
   key?: string | number | null,
 ): JSXElement {
@@ -92,7 +108,7 @@ export function jsxs(
  * Used in development mode with additional debug info
  */
 export function jsxDEV(
-  type: string | Function,
+  type: string | ComponentFunction,
   props: JSXProps,
   key?: string | number | null,
   isStaticChildren?: boolean,
@@ -134,7 +150,7 @@ export function Fragment(props: { children?: any }): JSXElement {
  * Used with @jsx pragma
  */
 export function createElement(
-  type: string | Function,
+  type: string | ComponentFunction,
   props: JSXProps | null,
   ...children: any[]
 ): JSXElement {
@@ -165,6 +181,18 @@ export function isValidElement(obj: any): obj is JSXElement {
     typeof obj === 'object' && obj !== null && 'type' in obj && 'props' in obj;
   console.log('isValidElement() called:', { obj, isValid });
   return isValid;
+}
+
+export function isCommentJsxElement(
+  el: JSXElement,
+): el is CommentJsxElement {
+  return typeof el.type === 'function';
+}
+
+export function isIntrinsicJsxElement(
+  el: JSXElement,
+): el is IntrinsicJsxElement {
+  return typeof el.type === 'string';
 }
 
 /**
