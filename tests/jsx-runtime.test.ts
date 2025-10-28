@@ -7,6 +7,7 @@ import {
   createElement,
   isValidElement,
   cloneElement,
+  FRAGMENT,
 } from '../src/jsx-runtime.js';
 
 describe('JSX Runtime', () => {
@@ -99,7 +100,7 @@ describe('JSX Runtime', () => {
       const element = Fragment({ children: ['child1', 'child2'] });
 
       expect(element).toEqual({
-        type: Fragment,
+        type: FRAGMENT,
         props: { children: ['child1', 'child2'] },
         key: null,
       });

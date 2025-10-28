@@ -194,4 +194,105 @@ describe('render', () => {
     unmount();
     expect(container.innerHTML).toMatchInlineSnapshot(`""`);
   });
+
+  it('should render nested fragments', () => {
+    const container = document.createElement('div');
+    const unmount = render(
+      container,
+      <>
+        <div>Item 1</div>
+        <>
+          <div>Item 2</div>
+          <>
+            <div>Item 3</div>
+          </>
+        </>
+      </>,
+    );
+    expect(container.innerHTML).toMatchInlineSnapshot(
+      `"<div>Item 1</div><div>Item 2</div><div>Item 3</div>"`,
+    );
+
+    unmount();
+    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+  });
+
+  it('should render array children without key', () => {
+    const container = document.createElement('div');
+    const items = ['Item 1', 'Item 2', 'Item 3'];
+    const unmount = render(
+      container,
+      <ul>
+        {items.map((item) => (
+          <li>{item}</li>
+        ))}
+      </ul>,
+    );
+    expect(container.innerHTML).toMatchInlineSnapshot(
+      `"<ul><li>Item 1</li><li>Item 2</li><li>Item 3</li></ul>"`,
+    );
+
+    unmount();
+    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+  });
+
+  it('should render array children with key', () => {
+    const container = document.createElement('div');
+    const items = ['Item 1', 'Item 2', 'Item 3'];
+    const unmount = render(
+      container,
+      <ul>
+        {items.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>,
+    );
+    expect(container.innerHTML).toMatchInlineSnapshot(
+      `"<ul><li>Item 1</li><li>Item 2</li><li>Item 3</li></ul>"`,
+    );
+
+    unmount();
+    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+  });
+
+  it('should render thunk array children', () => {
+    const container = document.createElement('div');
+    const items = ['Item 1', 'Item 2', 'Item 3'];
+    const unmount = render(
+      container,
+      <ul>{() => items.map((item) => <li key={item}>{item}</li>)}</ul>,
+    );
+    expect(container.innerHTML).toMatchInlineSnapshot(
+      `"<ul><li>Item 1</li><li>Item 2</li><li>Item 3</li></ul>"`,
+    );
+
+    unmount();
+    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+  });
+
+  it('should render nested array children', () => {
+    const container = document.createElement('div');
+    const items = [
+      ['Item 1.1', 'Item 1.2'],
+      ['Item 2.1', 'Item 2.2'],
+    ];
+    const unmount = render(
+      container,
+      <div>
+        {items.map((subItems, index) =>
+          subItems.map((item) => <span key={item}>{item}</span>),
+        )}
+      </div>,
+    );
+    expect(container.innerHTML).toMatchInlineSnapshot(
+      `"<div><span>Item 1.1</span><span>Item 1.2</span><span>Item 2.1</span><span>Item 2.2</span></div>"`,
+    );
+
+    unmount();
+    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+  });
+
+  it('should preserve dom elements', () => {
+    const container = document.createElement('div');
+  });
 });

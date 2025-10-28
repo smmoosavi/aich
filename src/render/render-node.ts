@@ -9,6 +9,7 @@ import {
   type JSXChild,
   type JSXElement,
   type LazyJSXChild,
+  type LazyJSXChildren,
 } from '../jsx-runtime';
 import {
   getChildContext,
@@ -17,13 +18,64 @@ import {
   type RenderContext,
   type UnmountFn,
 } from './render-context';
-import { resolveValue } from '../value';
+import { isThunk, resolveValue } from '../value';
 import { immediate } from '../effect';
 import type { AnyTElement } from 'src/renderer';
 
 // note one: we treat values and thunks uniformly here - both are LazyJSXChild
 // note two: we always render in an immediate, so that state changes re runs and update nodes
 // todo fragment is not implemented
+
+export function renderNodes(nodes: LazyJSXChildren): UnmountFn {
+  console.log('renderNodes', { nodes });
+  const ctx = getRenderContext();
+  if (isThunk(nodes)) {
+    let unmount: UnmountFn | undefined;
+    const dispose = immediate(() => {
+      withRenderContext(ctx, () => {
+        console.log('renderNodes.thunk.withRenderContext', { nodes });
+        unmount = renderNodes(nodes());
+      });
+    });
+    return () => {
+      console.log('renderNodes.thunk.cleanup', { nodes });
+      dispose();
+      if (unmount) {
+        unmount();
+      }
+    };
+  }
+  if (Array.isArray(nodes)) {
+    // todo
+    // for each child, find old ctx.
+    // if not exists render node and context and add to the new one
+    // if exists, reuse context (update) and add to the new one and remove from old one
+    // for remaining old contexts, unmount
+
+    const childContexts: RenderContext[] = [];
+    nodes.forEach((child, index) => {
+      console.log('renderNodes.forEach', { index, child });
+      const key = getChildKey(child, index);
+      const childCtx = getChildContext(key);
+      childCtx.parent = ctx.parent;
+      childContexts.push(childCtx);
+      withRenderContext(childCtx, () => {
+        console.log('renderNodes.withRenderContext', { index, child });
+        renderNodes(child);
+      });
+    });
+    return () => {
+      console.log('renderNodes.cleanup', { nodes });
+      childContexts.forEach((childCtx) => {
+        if (childCtx.unmount) {
+          childCtx.unmount();
+        }
+      });
+    };
+  }
+
+  return renderNode(nodes);
+}
 
 export function renderNode(node: LazyJSXChild): UnmountFn {
   console.log('renderNode', { node });
@@ -133,10 +185,7 @@ function renderComponentElement(el: ComponentJsxElement): UnmountFn {
 function renderFragmentElement(el: FragmentJsxElement): UnmountFn {
   console.log('renderFragmentElement', {});
   const ctx = getRenderContext();
-  const unmountChildren = renderChildren(
-    el.props.children,
-    ctx.parent,
-  );
+  const unmountChildren = renderChildren(el.props.children, ctx.parent);
   return () => {
     console.log('renderFragmentElement.cleanup', {});
     unmountChildren();
@@ -166,33 +215,23 @@ export function renderChildren(
   parent: AnyTElement,
 ): UnmountFn {
   console.log('renderChildren', { children });
-  const childArray = Array.isArray(children) ? children : [children];
+  const ctx = getRenderContext();
+  const newCtx: RenderContext = { renderer: ctx.renderer, parent };
 
-  // todo
-  // for each child, find old ctx.
-  // if not exists render node and context and add to the new one
-  // if exists, reuse context (update) and add to the new one and remove from old one
-  // for remaining old contexts, unmount
-
-  const childContexts: RenderContext[] = [];
-  childArray.forEach((child, index) => {
-    console.log('renderChildren.forEach', { index, child });
-    const childCtx = getChildContext(String(index));
-    childCtx.parent = parent;
-    childContexts.push(childCtx);
-    withRenderContext(childCtx, () => {
-      console.log('renderChildren.withRenderContext', { index, child });
-      renderNode(child);
-    });
+  return withRenderContext(newCtx, () => {
+    console.log('renderChildren.withRenderContext', { children });
+    return renderNodes(children);
   });
-  return () => {
-    console.log('renderChildren.cleanup', { children });
-    childContexts.forEach((childCtx) => {
-      if (childCtx.unmount) {
-        childCtx.unmount();
-      }
-    });
-  };
+}
+
+function getChildKey(child: LazyJSXChild, index: number): string | number {
+  if (isValidElement(child)) {
+    const el = child as JSXElement;
+    if (el.key !== undefined && el.key !== null) {
+      return String(el.key);
+    }
+  }
+  return index;
 }
 
 // we should update or remove old and add new one?

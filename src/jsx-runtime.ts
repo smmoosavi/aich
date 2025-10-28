@@ -9,9 +9,13 @@ export type JSXChild =
   | null
   | undefined;
 
-export type Key = string | number | null;
+export type Key = string | null;
 
 export type LazyJSXChild = JSXChild | Thunk<JSXChild>;
+export type LazyJSXChildren =
+  | LazyJSXChild
+  | LazyJSXChild[]
+  | Thunk<LazyJSXChild[]>;
 
 // Component type that returns LazyJSXChild
 export type ComponentFunction = (props: any) => LazyJSXChild;
@@ -74,7 +78,7 @@ declare global {
 export function jsx(
   type: string | ComponentFunction,
   props: JSXProps,
-  key?: string | number | null,
+  key?: Key,
 ): JSXElement {
   console.log('jsx() called:', {
     type,
@@ -96,7 +100,7 @@ export function jsx(
 export function jsxs(
   type: string | ComponentFunction,
   props: JSXProps,
-  key?: string | number | null,
+  key?: Key,
 ): JSXElement {
   console.log('jsxs() called (static):', {
     type,
@@ -118,7 +122,7 @@ export function jsxs(
 export function jsxDEV(
   type: string | ComponentFunction,
   props: JSXProps,
-  key?: string | number | null,
+  key?: Key,
   isStaticChildren?: boolean,
   source?: { fileName: string; lineNumber: number; columnNumber: number },
   self?: any,
@@ -144,10 +148,7 @@ export const FRAGMENT = Symbol.for('aich.fragment');
  * Fragment Component
  * Used for grouping elements without a wrapper
  */
-export function Fragment(props: {
-  children?: any;
-  key?: string | number | null;
-}): JSXElement {
+export function Fragment(props: { children?: any; key?: Key }): JSXElement {
   console.log('Fragment() called:', props);
 
   return {
