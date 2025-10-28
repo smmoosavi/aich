@@ -70,12 +70,7 @@ describe('render', () => {
     expect(container.innerHTML).toMatchInlineSnapshot(
       `"<div>Hello World</div>"`,
     );
-    console.log('--unmount--');
-    try {
-      unmount();
-    } catch (error) {
-      console.error('Error during unmount:', error);
-    }
+    unmount();
     expect(container.innerHTML).toMatchInlineSnapshot(`""`);
   });
 
@@ -85,6 +80,9 @@ describe('render', () => {
     expect(container.innerHTML).toMatchInlineSnapshot(
       `"<div>Hello World</div>"`,
     );
+
+    unmount();
+    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
   });
 
   it('should render const content', () => {
@@ -94,6 +92,9 @@ describe('render', () => {
     expect(container.innerHTML).toMatchInlineSnapshot(
       `"<div>Hello World</div>"`,
     );
+
+    unmount();
+    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
   });
   it('should render number/boolean/null/undefined content', () => {
     const container = document.createElement('div');
@@ -107,6 +108,9 @@ describe('render', () => {
     expect(container.innerHTML).toMatchInlineSnapshot(
       `"<div>zero '0', number '42', true '', false '', null '', undefined ''</div>"`,
     );
+
+    unmount();
+    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
   });
   it('should render thunk content', () => {
     const container = document.createElement('div');
@@ -115,6 +119,9 @@ describe('render', () => {
     expect(container.innerHTML).toMatchInlineSnapshot(
       `"<div>Hello World</div>"`,
     );
+
+    unmount();
+    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
   });
 
   it('should render state content', () => {
@@ -134,32 +141,57 @@ describe('render', () => {
     expect(container.innerHTML).toMatchInlineSnapshot(
       `"<div>Hello Universe</div>"`,
     );
-  });
-});
 
-it('should render nested elements', () => {
-  const container = document.createElement('div');
-  render(
-    container,
-    <div>
-      Hello <span>World</span>
-    </div>,
-  );
-  expect(container.innerHTML).toMatchInlineSnapshot(
-    `"<div>Hello <span>World</span></div>"`,
-  );
-});
-it('should render multiple children', () => {
-  const container = document.createElement('div');
-  render(
-    container,
-    <ul>
-      <li>Item 1</li>
-      <li>Item 2</li>
-      <li>Item 3</li>
-    </ul>,
-  );
-  expect(container.innerHTML).toMatchInlineSnapshot(
-    `"<ul><li>Item 1</li><li>Item 2</li><li>Item 3</li></ul>"`,
-  );
+    unmount();
+    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+  });
+
+  it('should render nested elements', () => {
+    const container = document.createElement('div');
+    const unmount = render(
+      container,
+      <div>
+        Hello <span>World</span>
+      </div>,
+    );
+    expect(container.innerHTML).toMatchInlineSnapshot(
+      `"<div>Hello <span>World</span></div>"`,
+    );
+
+    unmount();
+    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+  });
+  it('should render multiple children', () => {
+    const container = document.createElement('div');
+    const unmount = render(
+      container,
+      <ul>
+        <li>Item 1</li>
+        <li>Item 2</li>
+        <li>Item 3</li>
+      </ul>,
+    );
+    expect(container.innerHTML).toMatchInlineSnapshot(
+      `"<ul><li>Item 1</li><li>Item 2</li><li>Item 3</li></ul>"`,
+    );
+
+    unmount();
+    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+  });
+  it('should render fragment', () => {
+    const container = document.createElement('div');
+    const unmount = render(
+      container,
+      <>
+        <div>Item 1</div>
+        <div>Item 2</div>
+      </>,
+    );
+    expect(container.innerHTML).toMatchInlineSnapshot(
+      `"<div>Item 1</div><div>Item 2</div>"`,
+    );
+
+    unmount();
+    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+  });
 });

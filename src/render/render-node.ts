@@ -1,8 +1,10 @@
 import {
   isComponentJsxElement,
+  isFragmentJsxElement,
   isIntrinsicJsxElement,
   isValidElement,
   type ComponentJsxElement,
+  type FragmentJsxElement,
   type IntrinsicJsxElement,
   type JSXChild,
   type JSXElement,
@@ -55,6 +57,10 @@ export function _renderNode(node: JSXChild): UnmountFn {
     if (typeof node === 'string' || typeof node === 'number') {
       return renderTextNode(String(node));
     }
+    // null, undefined, boolean - no rendering
+    if (node === null || node === undefined || typeof node === 'boolean') {
+      return () => {}; // no-op cleanup
+    }
   }
   return () => {
     throw new Error(`Unsupported JSX child type: ${typeof node}`);
@@ -67,8 +73,10 @@ function renderElement(el: JSXElement): UnmountFn {
     return renderIntrinsicElement(el);
   } else if (isComponentJsxElement(el)) {
     return renderComponentElement(el);
+  } else if (isFragmentJsxElement(el)) {
+    return renderFragmentElement(el);
   } else {
-    throw new Error(`Unknown element type: ${el.type}`);
+    throw new Error(`Unknown element type: ${String(el.type)}`);
   }
 }
 
@@ -122,6 +130,19 @@ function renderComponentElement(el: ComponentJsxElement): UnmountFn {
   };
 }
 
+function renderFragmentElement(el: FragmentJsxElement): UnmountFn {
+  console.log('renderFragmentElement', {});
+  const ctx = getRenderContext();
+  const unmountChildren = renderChildren(
+    el.props.children,
+    ctx.parent,
+  );
+  return () => {
+    console.log('renderFragmentElement.cleanup', {});
+    unmountChildren();
+  };
+}
+
 export function renderTextNode(text: string): UnmountFn {
   console.log('renderTextNode', { text });
   const ctx = getRenderContext();
@@ -145,10 +166,7 @@ export function renderChildren(
   parent: AnyTElement,
 ): UnmountFn {
   console.log('renderChildren', { children });
-  const ctx = getRenderContext();
   const childArray = Array.isArray(children) ? children : [children];
-  const childrenCtxs = ctx.childrenCtxs ?? new Map<string, RenderContext>();
-  ctx.childrenCtxs = new Map<string, RenderContext>();
 
   // todo
   // for each child, find old ctx.
@@ -156,10 +174,12 @@ export function renderChildren(
   // if exists, reuse context (update) and add to the new one and remove from old one
   // for remaining old contexts, unmount
 
+  const childContexts: RenderContext[] = [];
   childArray.forEach((child, index) => {
     console.log('renderChildren.forEach', { index, child });
     const childCtx = getChildContext(String(index));
     childCtx.parent = parent;
+    childContexts.push(childCtx);
     withRenderContext(childCtx, () => {
       console.log('renderChildren.withRenderContext', { index, child });
       renderNode(child);
@@ -167,8 +187,7 @@ export function renderChildren(
   });
   return () => {
     console.log('renderChildren.cleanup', { children });
-    childArray.forEach((_, index) => {
-      const childCtx = getChildContext(String(index));
+    childContexts.forEach((childCtx) => {
       if (childCtx.unmount) {
         childCtx.unmount();
       }

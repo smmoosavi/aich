@@ -30,6 +30,12 @@ export interface IntrinsicJsxElement {
   key: Key;
 }
 
+export interface FragmentJsxElement {
+  type: typeof FRAGMENT;
+  props: Record<string, any>;
+  key: Key;
+}
+
 export interface JSXElement {
   type: string | ComponentFunction | typeof FRAGMENT;
   props: Record<string, any>;
@@ -201,7 +207,7 @@ export function isIntrinsicJsxElement(
   return typeof el.type === 'string';
 }
 
-export function isFragmentJsxElement(el: JSXElement): boolean {
+export function isFragmentJsxElement(el: JSXElement): el is FragmentJsxElement {
   return el.type === FRAGMENT;
 }
 
