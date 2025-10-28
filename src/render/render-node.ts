@@ -196,14 +196,17 @@ export function renderTextNode(text: string): UnmountFn {
   console.log('renderTextNode', { text });
   const ctx = getRenderContext();
   if (ctx.lastNode === undefined) {
+    console.log('  lastNode is undefined');
     ctx.lastNode = ctx.renderer.createTextNode(text);
     ctx.renderer.appendChild(ctx.parent, ctx.lastNode);
   } else {
+    console.log('  lastNode is defined');
     ctx.renderer.setTextContent(ctx.lastNode, text);
   }
   return () => {
     console.log('renderTextNode.cleanup', { text });
     if (ctx.lastNode) {
+      console.log('  removing lastNode');
       ctx.renderer.removeChild(ctx.parent, ctx.lastNode);
       ctx.lastNode = undefined;
     }

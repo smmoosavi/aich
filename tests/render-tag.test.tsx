@@ -292,7 +292,59 @@ describe('render', () => {
     expect(container.innerHTML).toMatchInlineSnapshot(`""`);
   });
 
-  it('should preserve dom elements', () => {
+  it.only('should preserve dom elements', () => {
     const container = document.createElement('div');
+    const items = state(['Item 1', 'Item 2', 'Item 3']);
+    const unmount = render(
+      container,
+      <ul>{() => items().map((item) => <li key={item}>{item}</li>)}</ul>,
+    );
+
+    // find li elements, store references, modify items, and check if li elements are preserved
+    const getLiElements = () =>
+      Array.from(container.querySelectorAll('li')) as HTMLLIElement[];
+    let liElements = getLiElements();
+    liElements.forEach((li, index) => {
+      li.dataset.testId = `li-${index}`;
+    });
+
+    expect(container.innerHTML).toMatchInlineSnapshot(
+      `"<ul><li data-test-id="li-0">Item 1</li><li data-test-id="li-1">Item 2</li><li data-test-id="li-2">Item 3</li></ul>"`,
+    );
+
+    console.log('--- re-render with same items ---');
+
+    // re-render with same items
+    items(['Item 1', 'Item 2', 'Item 3']);
+    flush();
+
+    let newLiElements = getLiElements();
+    expect(newLiElements[0].dataset.testId).toBe('li-0');
+    expect(newLiElements[1].dataset.testId).toBe('li-1');
+    expect(newLiElements[2].dataset.testId).toBe('li-2');
+
+    expect(container.innerHTML).toMatchInlineSnapshot(
+      `"<ul><li data-test-id="li-0">Item 1</li><li data-test-id="li-1">Item 2</li><li data-test-id="li-2">Item 3</li></ul>"`,
+    );
+
+
+    console.log('--- re-render with different items ---');
+
+    // re-render with different items
+    items(['Item 2', 'Item 3', 'Item 4']);
+    flush();
+
+    newLiElements = getLiElements();
+    expect(newLiElements[0].dataset.testId).toBe('li-1'); // Item 2 preserved
+    expect(newLiElements[1].dataset.testId).toBe('li-2'); // Item 3 preserved
+    expect(newLiElements[2].dataset.testId).toBeUndefined(); // Item 4 is new
+
+    expect(container.innerHTML).toMatchInlineSnapshot(
+      `"<ul><li data-test-id="li-1">Item 2</li><li data-test-id="li-2">Item 3</li><li>Item 4</li></ul>"`,
+    );
+
+
+    unmount();
+    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
   });
 });

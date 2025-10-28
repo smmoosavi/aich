@@ -80,11 +80,11 @@ export function jsx(
   props: JSXProps,
   key?: Key,
 ): JSXElement {
-  console.log('jsx() called:', {
-    type,
-    props,
-    key: key ?? null,
-  });
+  // console.log('jsx() called:', {
+  //   type,
+  //   props,
+  //   key: key ?? null,
+  // });
 
   return {
     type,
@@ -102,11 +102,11 @@ export function jsxs(
   props: JSXProps,
   key?: Key,
 ): JSXElement {
-  console.log('jsxs() called (static):', {
-    type,
-    props,
-    key: key ?? null,
-  });
+  // console.log('jsxs() called (static):', {
+  //   type,
+  //   props,
+  //   key: key ?? null,
+  // });
 
   return {
     type,
@@ -127,14 +127,14 @@ export function jsxDEV(
   source?: { fileName: string; lineNumber: number; columnNumber: number },
   self?: any,
 ): JSXElement {
-  console.log('jsxDEV() called (development):', {
-    type,
-    props,
-    key: key ?? null,
-    isStaticChildren,
-    source,
-    // self,
-  });
+  // console.log('jsxDEV() called (development):', {
+  //   type,
+  //   props,
+  //   key: key ?? null,
+  //   isStaticChildren,
+  //   source,
+  //   // self,
+  // });
 
   return {
     type,
@@ -149,7 +149,7 @@ export const FRAGMENT = Symbol.for('aich.fragment');
  * Used for grouping elements without a wrapper
  */
 export function Fragment(props: { children?: any; key?: Key }): JSXElement {
-  console.log('Fragment() called:', props);
+  // console.log('Fragment() called:', props);
 
   return {
     type: FRAGMENT,
@@ -173,11 +173,11 @@ export function createElement(
     allProps.children = children.length === 1 ? children[0] : children;
   }
 
-  console.log('createElement() called (classic):', {
-    type,
-    props: allProps,
-    children,
-  });
+  // console.log('createElement() called (classic):', {
+  //   type,
+  //   props: allProps,
+  //   children,
+  // });
 
   return {
     type,
@@ -192,7 +192,7 @@ export function createElement(
 export function isValidElement(obj: any): obj is JSXElement {
   const isValid =
     typeof obj === 'object' && obj !== null && 'type' in obj && 'props' in obj;
-  console.log('isValidElement() called:', { obj, isValid });
+  // console.log('isValidElement() called:', { obj, isValid });
   return isValid;
 }
 
@@ -226,11 +226,11 @@ export function cloneElement(
     newProps.children = children.length === 1 ? children[0] : children;
   }
 
-  console.log('cloneElement() called:', {
-    element,
-    newProps,
-    children,
-  });
+  // console.log('cloneElement() called:', {
+  //   element,
+  //   newProps,
+  //   children,
+  // });
 
   return {
     type: element.type,
