@@ -16,7 +16,7 @@ export type ComponentFunction = (props: any) => LazyJSXChild;
 
 // JSX Element Type
 
-export interface CommentJsxElement {
+export interface ComponentJsxElement {
   type: ComponentFunction;
   props: Record<string, any>;
   key: string | number | null;
@@ -183,9 +183,9 @@ export function isValidElement(obj: any): obj is JSXElement {
   return isValid;
 }
 
-export function isCommentJsxElement(
+export function isComponentJsxElement(
   el: JSXElement,
-): el is CommentJsxElement {
+): el is ComponentJsxElement {
   return typeof el.type === 'function';
 }
 

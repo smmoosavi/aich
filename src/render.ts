@@ -18,6 +18,7 @@ function _render(
   container: AnyTElement,
   content: LazyJSXChild,
 ): void {
+  console.log('----- render -----', { container, content });
   const ctx: RenderContext = { renderer, parent: container };
   withRenderContext(ctx, () => {
     renderNode(content);
