@@ -9,12 +9,15 @@ declare module '../root' {
   }
 }
 
+export type UnmountFn = () => void;
+
 export interface RenderContext {
   renderer: AnyRenderer;
   parent: AnyTElement;
   lastJsxNode?: JSXChild;
   lastNode?: AnyTNode;
   childrenCtxs?: Record<string, RenderContext>;
+  unmount?: UnmountFn;
 }
 
 export function getRenderContext(): RenderContext {

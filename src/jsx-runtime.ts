@@ -9,6 +9,8 @@ export type JSXChild =
   | null
   | undefined;
 
+export type Key = string | number | null;
+
 export type LazyJSXChild = JSXChild | Thunk<JSXChild>;
 
 // Component type that returns LazyJSXChild
@@ -19,24 +21,24 @@ export type ComponentFunction = (props: any) => LazyJSXChild;
 export interface ComponentJsxElement {
   type: ComponentFunction;
   props: Record<string, any>;
-  key: string | number | null;
+  key: Key;
 }
 
 export interface IntrinsicJsxElement {
   type: string;
   props: Record<string, any>;
-  key: string | number | null;
+  key: Key;
 }
 
 export interface JSXElement {
   type: string | ComponentFunction;
   props: Record<string, any>;
-  key: string | number | null;
+  key: Key;
 }
 
 export interface JSXProps {
   children?: LazyJSXChild | LazyJSXChild[];
-  key?: string | number | null;
+  key?: Key;
   [prop: string]: any;
 }
 
@@ -135,13 +137,13 @@ export function jsxDEV(
  * Fragment Component
  * Used for grouping elements without a wrapper
  */
-export function Fragment(props: { children?: any }): JSXElement {
+export function Fragment(props: { children?: any, key?: string | number | null }): JSXElement {
   console.log('Fragment() called:', props);
 
   return {
     type: Fragment,
     props: props || {},
-    key: null,
+    key: props.key ?? null,
   };
 }
 
