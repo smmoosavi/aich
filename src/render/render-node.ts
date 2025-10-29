@@ -20,7 +20,7 @@ import {
 } from './render-context';
 import { isThunk, resolveValue } from '../value';
 import { immediate } from '../effect';
-import type { AnyTElement } from '../renderer';
+import type { AnyTElement, AnyTNode } from '../renderer';
 import { _log, _withIndent } from '../debug';
 import { getCtxDebugName } from './debug-ctx';
 
@@ -65,16 +65,20 @@ export function renderNodes(nodes: LazyJSXChildren): UnmountFn {
     ctx.childrenCtxs = new Map<string | number, RenderContext>();
 
     const childContexts: RenderContext[] = [];
+    const reusedContexts = new Set<RenderContext>();
+
     nodes.forEach((child, index) => {
       _log('renderNodes.forEach', { index, child });
       const key = getChildKey(child, index);
       let childCtx = oldChildrenCtxs?.get(key);
+      let wasReused = false;
       if (childCtx) {
         if (isSameNode(ctx.lastJsxNode, child)) {
           // todo: is same node?
           // todo: error if duplicate keys
           ctx.childrenCtxs?.set(key, childCtx);
           oldChildrenCtxs?.delete(key);
+          wasReused = true;
         } else {
           // remove old
           childCtx.unmount?.();
@@ -86,11 +90,39 @@ export function renderNodes(nodes: LazyJSXChildren): UnmountFn {
 
       childCtx.parent = ctx.parent;
       childContexts.push(childCtx);
+      if (wasReused) {
+        reusedContexts.add(childCtx);
+      }
       withRenderContext(childCtx, () => {
         _log('renderNodes.withRenderContext', { index, child });
         renderNodes(child);
       });
     });
+
+    // After rendering all children, ensure reused nodes are in the correct order
+    // Only reposition nodes that were reused (already in DOM), not newly created ones
+    if (reusedContexts.size > 0) {
+      for (let i = childContexts.length - 1; i >= 0; i--) {
+        const childCtx = childContexts[i];
+        if (childCtx.lastNode && reusedContexts.has(childCtx)) {
+          // Find the reference node (the next sibling that should come after this node)
+          let referenceNode: AnyTNode | null = null;
+          for (let j = i + 1; j < childContexts.length; j++) {
+            const nextNode = childContexts[j].lastNode;
+            if (nextNode) {
+              referenceNode = nextNode;
+              break;
+            }
+          }
+          // Insert this node before the reference node (or at the end if referenceNode is null)
+          ctx.renderer.insertBefore(
+            ctx.parent,
+            childCtx.lastNode,
+            referenceNode,
+          );
+        }
+      }
+    }
 
     oldChildrenCtxs?.forEach((oldChildCtx, key) => {
       _log('renderNodes.unmountOldChildCtx', { key });

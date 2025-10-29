@@ -293,7 +293,7 @@ describe('render', () => {
     expect(container.innerHTML).toMatchInlineSnapshot(`""`);
   });
 
-  it.only('should preserve dom elements', () => {
+  it('should preserve dom elements', () => {
     const container = document.createElement('div');
     const items = state(['Item 1', 'Item 2', 'Item 3']);
     const unmount = render(
