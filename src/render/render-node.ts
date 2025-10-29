@@ -160,6 +160,10 @@ export function renderNodes(nodes: LazyJSXChildren): UnmountFn {
       newEnd--;
     }
 
+    // Save bounds after prefix/suffix matching for later positioning logic
+    const middleStart = start;
+    const middleEnd = newEnd;
+
     // Step 3: Simple cases - all items added or removed
     if (start > end) {
       // Only additions remain
@@ -253,22 +257,29 @@ export function renderNodes(nodes: LazyJSXChildren): UnmountFn {
       }
     }
 
-    // Step 5: Reorder DOM nodes - only for items that were reused and moved
+    // Step 5: Reorder DOM nodes - for both reused and newly created nodes
     // Process in reverse to maintain correct reference nodes
     for (let i = newLen - 1; i >= 0; i--) {
       const childCtx = childContexts[i];
-      if (childCtx?.lastNode && tempNodes[i]) {
-        // This node was reused, check if it needs repositioning
+      if (childCtx?.lastNode) {
+        // Find the next sibling node to use as reference
+        // For array contexts, we need to find the first actual DOM node
         let referenceNode: AnyTNode | null = null;
         for (let j = i + 1; j < newLen; j++) {
-          const nextNode = childContexts[j]?.lastNode;
-          if (nextNode) {
-            referenceNode = nextNode;
-            break;
+          const nextCtx = childContexts[j];
+          if (nextCtx) {
+            referenceNode = getFirstNode(nextCtx);
+            if (referenceNode) break;
           }
         }
-        // Only insert if position changed
-        ctx.renderer.insertBefore(ctx.parent, childCtx.lastNode, referenceNode);
+        
+        // Insert/reorder the node if:
+        // 1. It was reused and moved (tempNodes[i] exists), OR
+        // 2. It's a newly created node in the middle section (between middleStart and middleEnd)
+        if (tempNodes[i] || (i >= middleStart && i <= middleEnd)) {
+          _log('renderNodes.positioning', { index: i, hasReference: !!referenceNode, middleStart, middleEnd });
+          ctx.renderer.insertBefore(ctx.parent, childCtx.lastNode, referenceNode);
+        }
       }
     }
 

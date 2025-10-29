@@ -435,7 +435,7 @@ describe('render', () => {
     expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
   });
 
-  it.only('should render mixed content', () => {
+  it('should render mixed content', () => {
     const container = document.createElement('div');
     const items = state(['Item 1', 'Item 2', 'Item 3']);
     const count = state(3);
@@ -500,6 +500,8 @@ describe('render', () => {
       </div>"
     `);
 
+debugContext();
+
     rerun(1);
     flush();
     expect(prettyDOM(container)).toMatchInlineSnapshot(`
@@ -513,6 +515,8 @@ describe('render', () => {
         4 rerun: 1
       </div>"
     `);
+
+debugContext();
 
     unmount();
     expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
