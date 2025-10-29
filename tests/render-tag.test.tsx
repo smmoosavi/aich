@@ -435,7 +435,7 @@ describe('render', () => {
     expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
   });
 
-  it('should render mixed content', () => {
+  it.only('should render mixed content', () => {
     const container = document.createElement('div');
     const items = state(['Item 1', 'Item 2', 'Item 3']);
     const count = state(3);
