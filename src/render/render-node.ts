@@ -54,87 +54,228 @@ export function renderNodes(nodes: LazyJSXChildren): UnmountFn {
     };
   }
   if (Array.isArray(nodes)) {
-    // todo
-    // for each child, find old ctx.
-    // if not exists render node and context and add to the new one
-    // if exists, and if jsxChild is same (with isSameNode) reuse context (update) and add to the new one and remove from old one
-    // for remaining old contexts, unmount
-    // order of children may change, so we need to handle that
+    // Solid-style reconciliation algorithm for efficient list updates
+    // Optimized for common cases: prefix/suffix matching, minimal DOM operations
+    // Based on the algorithm from Solid.js array.ts
 
     const oldChildrenCtxs = ctx.childrenCtxs;
+    const oldKeys: (string | number)[] = oldChildrenCtxs
+      ? Array.from(oldChildrenCtxs.keys())
+      : [];
+    const newLen = nodes.length;
+    const oldLen = oldKeys.length;
+
     ctx.childrenCtxs = new Map<string | number, RenderContext>();
 
-    const childContexts: RenderContext[] = [];
-    const reusedContexts = new Set<RenderContext>();
-
-    nodes.forEach((child, index) => {
-      _log('renderNodes.forEach', { index, child });
-      const key = getChildKey(child, index);
-      let childCtx = oldChildrenCtxs?.get(key);
-      let wasReused = false;
-      if (childCtx) {
-        if (isSameNode(ctx.lastJsxNode, child)) {
-          // todo: is same node?
-          // todo: error if duplicate keys
-          ctx.childrenCtxs?.set(key, childCtx);
-          oldChildrenCtxs?.delete(key);
-          wasReused = true;
-        } else {
-          // remove old
-          childCtx.unmount?.();
-          childCtx = getChildContext(key);
-        }
-      } else {
-        childCtx = getChildContext(key);
+    // Fast path: empty array
+    if (newLen === 0) {
+      if (oldLen !== 0) {
+        // Unmount all old children
+        oldChildrenCtxs?.forEach((oldChildCtx) => {
+          if (oldChildCtx.unmount) {
+            oldChildCtx.unmount();
+          }
+        });
       }
+      return () => {
+        _log('renderNodes.cleanup', { nodes });
+      };
+    }
 
+    // Fast path: first render (no old children)
+    if (oldLen === 0) {
+      const childContexts: RenderContext[] = [];
+      nodes.forEach((child, index) => {
+        _log('renderNodes.forEach', { index, child });
+        const key = getChildKey(child, index);
+        const childCtx = getChildContext(key);
+        childCtx.parent = ctx.parent;
+        childContexts.push(childCtx);
+        withRenderContext(childCtx, () => {
+          _log('renderNodes.withRenderContext', { index, child });
+          renderNodes(child);
+        });
+      });
+      return () => {
+        _log('renderNodes.cleanup', { nodes });
+        childContexts.forEach((childCtx) => {
+          if (childCtx.unmount) {
+            childCtx.unmount();
+          }
+        });
+      };
+    }
+
+    // General case: reconciliation with optimization
+    const childContexts: RenderContext[] = new Array(newLen);
+    const tempContexts: RenderContext[] = new Array(newLen);
+    const tempNodes: AnyTNode[] = new Array(newLen);
+
+    let start = 0;
+    let end = oldLen - 1;
+    let newEnd = newLen - 1;
+    let key: string | number;
+    let oldKey: string | number;
+
+    // Step 1: Skip common prefix
+    while (start <= end && start <= newEnd) {
+      key = getChildKey(nodes[start], start);
+      oldKey = oldKeys[start];
+      if (key !== oldKey) break;
+
+      const childCtx = oldChildrenCtxs!.get(oldKey)!;
+      const child = nodes[start];
+      if (!isSameNode(childCtx.lastJsxNode, child)) break;
+
+      _log('renderNodes.reusePrefix', { index: start, key });
+      ctx.childrenCtxs.set(key, childCtx);
+      childContexts[start] = childCtx;
       childCtx.parent = ctx.parent;
-      childContexts.push(childCtx);
-      if (wasReused) {
-        reusedContexts.add(childCtx);
-      }
       withRenderContext(childCtx, () => {
-        _log('renderNodes.withRenderContext', { index, child });
         renderNodes(child);
       });
-    });
+      start++;
+    }
 
-    // After rendering all children, ensure reused nodes are in the correct order
-    // Only reposition nodes that were reused (already in DOM), not newly created ones
-    if (reusedContexts.size > 0) {
-      for (let i = childContexts.length - 1; i >= 0; i--) {
-        const childCtx = childContexts[i];
-        if (childCtx.lastNode && reusedContexts.has(childCtx)) {
-          // Find the reference node (the next sibling that should come after this node)
-          let referenceNode: AnyTNode | null = null;
-          for (let j = i + 1; j < childContexts.length; j++) {
-            const nextNode = childContexts[j].lastNode;
-            if (nextNode) {
-              referenceNode = nextNode;
-              break;
+    // Step 2: Skip common suffix
+    while (start <= end && start <= newEnd) {
+      key = getChildKey(nodes[newEnd], newEnd);
+      oldKey = oldKeys[end];
+      if (key !== oldKey) break;
+
+      const childCtx = oldChildrenCtxs!.get(oldKey)!;
+      const child = nodes[newEnd];
+      if (!isSameNode(childCtx.lastJsxNode, child)) break;
+
+      _log('renderNodes.reuseSuffix', { index: newEnd, key });
+      ctx.childrenCtxs.set(key, childCtx);
+      childContexts[newEnd] = childCtx;
+      tempContexts[newEnd] = childCtx;
+      tempNodes[newEnd] = childCtx.lastNode!;
+      childCtx.parent = ctx.parent;
+      withRenderContext(childCtx, () => {
+        renderNodes(child);
+      });
+      end--;
+      newEnd--;
+    }
+
+    // Step 3: Simple cases - all items added or removed
+    if (start > end) {
+      // Only additions remain
+      for (let j = start; j <= newEnd; j++) {
+        const child = nodes[j];
+        key = getChildKey(child, j);
+        _log('renderNodes.add', { index: j, key });
+        const childCtx = getChildContext(key);
+        childCtx.parent = ctx.parent;
+        childContexts[j] = childCtx;
+        withRenderContext(childCtx, () => {
+          renderNodes(child);
+        });
+      }
+    } else if (start > newEnd) {
+      // Only removals remain
+      for (let i = start; i <= end; i++) {
+        const oldKey = oldKeys[i];
+        const oldChildCtx = oldChildrenCtxs!.get(oldKey);
+        _log('renderNodes.remove', { index: i, key: oldKey });
+        if (oldChildCtx?.unmount) {
+          oldChildCtx.unmount();
+        }
+      }
+    } else {
+      // Step 4: Complex case - build map and reconcile
+      const newIndices = new Map<string | number, number>();
+      const newIndicesNext: number[] = new Array(newEnd + 1);
+
+      // Build map of all indices in new items (scanning backwards)
+      for (let j = newEnd; j >= start; j--) {
+        key = getChildKey(nodes[j], j);
+        const i = newIndices.get(key);
+        newIndicesNext[j] = i === undefined ? -1 : i;
+        newIndices.set(key, j);
+      }
+
+      // Match old items to new positions
+      for (let i = start; i <= end; i++) {
+        oldKey = oldKeys[i];
+        const j = newIndices.get(oldKey);
+        if (j !== undefined && j !== -1) {
+          const childCtx = oldChildrenCtxs!.get(oldKey)!;
+          const child = nodes[j];
+          if (isSameNode(childCtx.lastJsxNode, child)) {
+            _log('renderNodes.reuse', { oldIndex: i, newIndex: j, key: oldKey });
+            tempContexts[j] = childCtx;
+            tempNodes[j] = childCtx.lastNode!;
+            const nextJ = newIndicesNext[j];
+            newIndices.set(oldKey, nextJ);
+          } else {
+            // Type changed, need to unmount old and create new
+            _log('renderNodes.replaceType', { index: j, key: oldKey });
+            if (childCtx.unmount) {
+              childCtx.unmount();
             }
           }
-          // Insert this node before the reference node (or at the end if referenceNode is null)
-          ctx.renderer.insertBefore(
-            ctx.parent,
-            childCtx.lastNode,
-            referenceNode,
-          );
+        } else {
+          // Old item not in new list, unmount it
+          const oldChildCtx = oldChildrenCtxs!.get(oldKey);
+          _log('renderNodes.unmount', { index: i, key: oldKey });
+          if (oldChildCtx?.unmount) {
+            oldChildCtx.unmount();
+          }
+        }
+      }
+
+      // Create/update all items in the middle section
+      for (let j = start; j <= newEnd; j++) {
+        const child = nodes[j];
+        key = getChildKey(child, j);
+        if (j in tempContexts) {
+          // Reused context
+          const childCtx = tempContexts[j];
+          ctx.childrenCtxs.set(key, childCtx);
+          childContexts[j] = childCtx;
+          childCtx.parent = ctx.parent;
+          withRenderContext(childCtx, () => {
+            renderNodes(child);
+          });
+        } else {
+          // New context
+          _log('renderNodes.create', { index: j, key });
+          const childCtx = getChildContext(key);
+          childCtx.parent = ctx.parent;
+          childContexts[j] = childCtx;
+          withRenderContext(childCtx, () => {
+            renderNodes(child);
+          });
         }
       }
     }
 
-    oldChildrenCtxs?.forEach((oldChildCtx, key) => {
-      _log('renderNodes.unmountOldChildCtx', { key });
-      if (oldChildCtx.unmount) {
-        oldChildCtx.unmount();
+    // Step 5: Reorder DOM nodes - only for items that were reused and moved
+    // Process in reverse to maintain correct reference nodes
+    for (let i = newLen - 1; i >= 0; i--) {
+      const childCtx = childContexts[i];
+      if (childCtx?.lastNode && tempNodes[i]) {
+        // This node was reused, check if it needs repositioning
+        let referenceNode: AnyTNode | null = null;
+        for (let j = i + 1; j < newLen; j++) {
+          const nextNode = childContexts[j]?.lastNode;
+          if (nextNode) {
+            referenceNode = nextNode;
+            break;
+          }
+        }
+        // Only insert if position changed
+        ctx.renderer.insertBefore(ctx.parent, childCtx.lastNode, referenceNode);
       }
-    });
+    }
 
     return () => {
       _log('renderNodes.cleanup', { nodes });
       childContexts.forEach((childCtx) => {
-        if (childCtx.unmount) {
+        if (childCtx?.unmount) {
           childCtx.unmount();
         }
       });
