@@ -1,3 +1,4 @@
+import { debugContext } from '../src/render/debug-ctx';
 import { flush, state } from '../src';
 import { render } from '../src/dom';
 describe('render', () => {
@@ -292,7 +293,7 @@ describe('render', () => {
     expect(container.innerHTML).toMatchInlineSnapshot(`""`);
   });
 
-  it.only('should preserve dom elements', () => {
+  it('should preserve dom elements', () => {
     const container = document.createElement('div');
     const items = state(['Item 1', 'Item 2', 'Item 3']);
     const unmount = render(
@@ -311,6 +312,8 @@ describe('render', () => {
     expect(container.innerHTML).toMatchInlineSnapshot(
       `"<ul><li data-test-id="li-0">Item 1</li><li data-test-id="li-1">Item 2</li><li data-test-id="li-2">Item 3</li></ul>"`,
     );
+
+    debugContext();
 
     console.log('--- re-render with same items ---');
 

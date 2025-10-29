@@ -20,25 +20,27 @@ import {
 } from './render-context';
 import { isThunk, resolveValue } from '../value';
 import { immediate } from '../effect';
-import type { AnyTElement } from 'src/renderer';
+import type { AnyTElement } from '../renderer';
+import { _log, _withIndent } from '../debug';
+import { getCtxDebugName } from './debug-ctx';
 
 // note one: we treat values and thunks uniformly here - both are LazyJSXChild
 // note two: we always render in an immediate, so that state changes re runs and update nodes
 // todo fragment is not implemented
 
 export function renderNodes(nodes: LazyJSXChildren): UnmountFn {
-  console.log('renderNodes', { nodes });
+  _log('renderNodes', { nodes });
   const ctx = getRenderContext();
   if (isThunk(nodes)) {
     let unmount: UnmountFn | undefined;
     const dispose = immediate(() => {
       withRenderContext(ctx, () => {
-        console.log('renderNodes.thunk.withRenderContext', { nodes });
+        _log('renderNodes.thunk.withRenderContext', { nodes });
         unmount = renderNodes(nodes());
       });
     });
     return () => {
-      console.log('renderNodes.thunk.cleanup', { nodes });
+      _log('renderNodes.thunk.cleanup', { nodes });
       dispose();
       if (unmount) {
         unmount();
@@ -49,23 +51,24 @@ export function renderNodes(nodes: LazyJSXChildren): UnmountFn {
     // todo
     // for each child, find old ctx.
     // if not exists render node and context and add to the new one
-    // if exists, reuse context (update) and add to the new one and remove from old one
+    // if exists, and if jsxChild is same (with isSameNode) reuse context (update) and add to the new one and remove from old one
     // for remaining old contexts, unmount
+    // order of children may change, so we need to handle that
 
     const childContexts: RenderContext[] = [];
     nodes.forEach((child, index) => {
-      console.log('renderNodes.forEach', { index, child });
+      _log('renderNodes.forEach', { index, child });
       const key = getChildKey(child, index);
       const childCtx = getChildContext(key);
       childCtx.parent = ctx.parent;
       childContexts.push(childCtx);
       withRenderContext(childCtx, () => {
-        console.log('renderNodes.withRenderContext', { index, child });
+        _log('renderNodes.withRenderContext', { index, child });
         renderNodes(child);
       });
     });
     return () => {
-      console.log('renderNodes.cleanup', { nodes });
+      _log('renderNodes.cleanup', { nodes });
       childContexts.forEach((childCtx) => {
         if (childCtx.unmount) {
           childCtx.unmount();
@@ -74,24 +77,24 @@ export function renderNodes(nodes: LazyJSXChildren): UnmountFn {
     };
   }
 
-  return renderNode(nodes);
+  return _withIndent(() => renderNode(nodes));
 }
 
 export function renderNode(node: LazyJSXChild): UnmountFn {
-  console.log('renderNode', { node });
   const ctx = getRenderContext();
+  _log('renderNode', getCtxDebugName(ctx), { node });
   // todo - if not thunk, can optimize by not using immediate
   const dispose = immediate(() => {
-    console.log('renderNode.immediate', { node });
+    _log('renderNode.immediate', { node });
     withRenderContext(ctx, () => {
-      console.log('renderNode.withRenderContext', { node });
+      _log('renderNode.withRenderContext', { node });
       const resolvedContent = resolveValue(node);
       ctx.unmount = _renderNode(resolvedContent);
       ctx.lastJsxNode = resolvedContent;
     });
   });
   return () => {
-    console.log('renderNode.cleanup', { node });
+    _log('renderNode.cleanup', { node });
     ctx.lastJsxNode = undefined;
     if (ctx.unmount) {
       ctx.unmount();
@@ -102,7 +105,7 @@ export function renderNode(node: LazyJSXChild): UnmountFn {
 }
 
 export function _renderNode(node: JSXChild): UnmountFn {
-  console.log('_renderNode', { node });
+  _log('_renderNode', { node });
   if (isValidElement(node)) {
     return renderElement(node as JSXElement);
   } else {
@@ -120,7 +123,7 @@ export function _renderNode(node: JSXChild): UnmountFn {
 }
 
 function renderElement(el: JSXElement): UnmountFn {
-  console.log('renderElement', { type: el.type });
+  _log('renderElement', { type: el.type });
   if (isIntrinsicJsxElement(el)) {
     return renderIntrinsicElement(el);
   } else if (isComponentJsxElement(el)) {
@@ -133,7 +136,7 @@ function renderElement(el: JSXElement): UnmountFn {
 }
 
 function renderIntrinsicElement(el: IntrinsicJsxElement): UnmountFn {
-  console.log('renderIntrinsicElement', { type: el.type });
+  _log('renderIntrinsicElement', { type: el.type });
   const ctx = getRenderContext();
   if (ctx.lastNode === undefined) {
     ctx.lastNode = ctx.renderer.createElement(el.type);
@@ -146,7 +149,7 @@ function renderIntrinsicElement(el: IntrinsicJsxElement): UnmountFn {
     ctx.lastNode as AnyTElement,
   );
   return () => {
-    console.log('renderIntrinsicElement.cleanup', { type: el.type });
+    _log('renderIntrinsicElement.cleanup', { type: el.type });
     unmountChildren();
     if (ctx.lastNode) {
       ctx.renderer.removeChild(ctx.parent, ctx.lastNode);
@@ -156,24 +159,24 @@ function renderIntrinsicElement(el: IntrinsicJsxElement): UnmountFn {
 }
 
 function renderComponentElement(el: ComponentJsxElement): UnmountFn {
-  console.log('renderComponentElement', { type: el.type });
+  _log('renderComponentElement', { type: el.type });
   const component = el.type;
   const props = el.props;
   let childUnmount: UnmountFn | undefined;
   const dispose = immediate(() => {
-    console.log('renderComponentElement.immediate', {
+    _log('renderComponentElement.immediate', {
       component: component?.name,
       props,
     });
     const res = component(props);
     const childCtx = getChildContext('');
     withRenderContext(childCtx, () => {
-      console.log('renderComponentElement.withRenderContext', { res });
+      _log('renderComponentElement.withRenderContext', { res });
       childUnmount = renderNode(res);
     });
   });
   return () => {
-    console.log('renderComponentElement.cleanup', { type: el.type });
+    _log('renderComponentElement.cleanup', { type: el.type });
     if (childUnmount) {
       childUnmount();
       childUnmount = undefined;
@@ -183,30 +186,30 @@ function renderComponentElement(el: ComponentJsxElement): UnmountFn {
 }
 
 function renderFragmentElement(el: FragmentJsxElement): UnmountFn {
-  console.log('renderFragmentElement', {});
+  _log('renderFragmentElement', {});
   const ctx = getRenderContext();
   const unmountChildren = renderChildren(el.props.children, ctx.parent);
   return () => {
-    console.log('renderFragmentElement.cleanup', {});
+    _log('renderFragmentElement.cleanup', {});
     unmountChildren();
   };
 }
 
 export function renderTextNode(text: string): UnmountFn {
-  console.log('renderTextNode', { text });
+  _log('renderTextNode', { text });
   const ctx = getRenderContext();
   if (ctx.lastNode === undefined) {
-    console.log('  lastNode is undefined');
+    _log('  lastNode is undefined');
     ctx.lastNode = ctx.renderer.createTextNode(text);
     ctx.renderer.appendChild(ctx.parent, ctx.lastNode);
   } else {
-    console.log('  lastNode is defined');
+    _log('  lastNode is defined');
     ctx.renderer.setTextContent(ctx.lastNode, text);
   }
   return () => {
-    console.log('renderTextNode.cleanup', { text });
+    _log('renderTextNode.cleanup', { text });
     if (ctx.lastNode) {
-      console.log('  removing lastNode');
+      _log('  removing lastNode');
       ctx.renderer.removeChild(ctx.parent, ctx.lastNode);
       ctx.lastNode = undefined;
     }
@@ -217,12 +220,12 @@ export function renderChildren(
   children: LazyJSXChild | LazyJSXChild[],
   parent: AnyTElement,
 ): UnmountFn {
-  console.log('renderChildren', { children });
-  const ctx = getRenderContext();
-  const newCtx: RenderContext = { renderer: ctx.renderer, parent };
+  _log('renderChildren', { children });
 
-  return withRenderContext(newCtx, () => {
-    console.log('renderChildren.withRenderContext', { children });
+  const ctx = getChildContext('', parent);
+
+  return withRenderContext(ctx, () => {
+    _log('renderChildren.withRenderContext', { children });
     return renderNodes(children);
   });
 }
@@ -258,4 +261,17 @@ export function isSameNode(old: JSXChild, next: JSXChild): boolean {
     return old.type === next.type && old.key === next.key;
   }
   return false;
+}
+
+export function updateElement(
+  nextNode: JSXChild,
+) {
+  const ctx = getRenderContext();
+  _log('updateElement', getCtxDebugName(ctx), { oldNode: ctx.lastJsxNode, nextNode });
+  // this functions called when ctx.lastJsxNode isSameNode to nextNode
+  // this is function only is called for elements
+  // so we can reuse the existing ctx.lastNode and just update its attributes, event listeners
+  // children is not handled here - it is handled in renderNodes
+  
+  // todo: update attributes, event listeners
 }
