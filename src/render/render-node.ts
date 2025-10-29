@@ -28,6 +28,12 @@ import { getCtxDebugName } from './debug-ctx';
 // note two: we always render in an immediate, so that state changes re runs and update nodes
 // todo fragment is not implemented
 
+// what nodes can be?
+// text
+// no-op (null, undefined, boolean)
+// element (intrinsic, component, fragment)
+// array of nodes
+// thunk returning any of above
 export function renderNodes(nodes: LazyJSXChildren): UnmountFn {
   _log('renderNodes', { nodes });
   const ctx = getRenderContext();
@@ -55,11 +61,29 @@ export function renderNodes(nodes: LazyJSXChildren): UnmountFn {
     // for remaining old contexts, unmount
     // order of children may change, so we need to handle that
 
+    const oldChildrenCtxs = ctx.childrenCtxs;
+    ctx.childrenCtxs = new Map<string | number, RenderContext>();
+
     const childContexts: RenderContext[] = [];
     nodes.forEach((child, index) => {
       _log('renderNodes.forEach', { index, child });
       const key = getChildKey(child, index);
-      const childCtx = getChildContext(key);
+      let childCtx = oldChildrenCtxs?.get(key);
+      if (childCtx) {
+        if (isSameNode(ctx.lastJsxNode, child)) {
+          // todo: is same node?
+          // todo: error if duplicate keys
+          ctx.childrenCtxs?.set(key, childCtx);
+          oldChildrenCtxs?.delete(key);
+        } else {
+          // remove old
+          childCtx.unmount?.();
+          childCtx = getChildContext(key);
+        }
+      } else {
+        childCtx = getChildContext(key);
+      }
+
       childCtx.parent = ctx.parent;
       childContexts.push(childCtx);
       withRenderContext(childCtx, () => {
@@ -67,6 +91,14 @@ export function renderNodes(nodes: LazyJSXChildren): UnmountFn {
         renderNodes(child);
       });
     });
+
+    oldChildrenCtxs?.forEach((oldChildCtx, key) => {
+      _log('renderNodes.unmountOldChildCtx', { key });
+      if (oldChildCtx.unmount) {
+        oldChildCtx.unmount();
+      }
+    });
+
     return () => {
       _log('renderNodes.cleanup', { nodes });
       childContexts.forEach((childCtx) => {
@@ -217,7 +249,7 @@ export function renderTextNode(text: string): UnmountFn {
 }
 
 export function renderChildren(
-  children: LazyJSXChild | LazyJSXChild[],
+  children: LazyJSXChildren,
   parent: AnyTElement,
 ): UnmountFn {
   _log('renderChildren', { children });

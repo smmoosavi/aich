@@ -13,9 +13,11 @@ export type Key = string | null;
 
 export type LazyJSXChild = JSXChild | Thunk<JSXChild>;
 export type LazyJSXChildren =
-  | LazyJSXChild
-  | LazyJSXChild[]
-  | Thunk<LazyJSXChild[]>;
+  | JSXChild
+  | Thunk<JSXChild>
+  | JSXChild[]
+  | Thunk<JSXChild[]>;
+// todo maybe we can add types like Thunk<JSXChild>[] but it give huge complexity to render logic
 
 // Component type that returns LazyJSXChild
 export type ComponentFunction = (props: any) => LazyJSXChild;

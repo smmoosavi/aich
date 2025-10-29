@@ -293,7 +293,7 @@ describe('render', () => {
     expect(container.innerHTML).toMatchInlineSnapshot(`""`);
   });
 
-  it('should preserve dom elements', () => {
+  it.only('should preserve dom elements', () => {
     const container = document.createElement('div');
     const items = state(['Item 1', 'Item 2', 'Item 3']);
     const unmount = render(
@@ -326,6 +326,7 @@ describe('render', () => {
     expect(newLiElements[1].dataset.testId).toBe('li-1');
     expect(newLiElements[2].dataset.testId).toBe('li-2');
 
+    debugContext();
     expect(container.innerHTML).toMatchInlineSnapshot(
       `"<ul><li data-test-id="li-0">Item 1</li><li data-test-id="li-1">Item 2</li><li data-test-id="li-2">Item 3</li></ul>"`,
     );
@@ -336,13 +337,28 @@ describe('render', () => {
     items(['Item 2', 'Item 3', 'Item 4']);
     flush();
 
+    debugContext();
+
+    expect(container.innerHTML).toMatchInlineSnapshot(
+      `"<ul><li data-test-id="li-1">Item 2</li><li data-test-id="li-2">Item 3</li><li>Item 4</li></ul>"`,
+    );
+
     newLiElements = getLiElements();
     expect(newLiElements[0].dataset.testId).toBe('li-1'); // Item 2 preserved
     expect(newLiElements[1].dataset.testId).toBe('li-2'); // Item 3 preserved
     expect(newLiElements[2].dataset.testId).toBeUndefined(); // Item 4 is new
 
+    // re-render with different order
+
+    console.log('--- re-render with reordered items ---');
+    items(['Item 4', 'Item 3', 'Item 2', 'Item 5']);
+
+    flush();
+
+    debugContext();
+
     expect(container.innerHTML).toMatchInlineSnapshot(
-      `"<ul><li data-test-id="li-1">Item 2</li><li data-test-id="li-2">Item 3</li><li>Item 4</li></ul>"`,
+      `"<ul><li>Item 4</li><li data-test-id="li-2">Item 3</li><li data-test-id="li-1">Item 2</li><li>Item 5</li></ul>"`,
     );
 
     unmount();
