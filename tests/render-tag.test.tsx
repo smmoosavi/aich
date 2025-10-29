@@ -1,3 +1,4 @@
+import { prettyDOM } from './pretty-dom';
 import { debugContext } from '../src/render/debug-ctx';
 import { flush, state } from '../src';
 import { render } from '../src/dom';
@@ -6,97 +7,97 @@ describe('render', () => {
   it('should render text node', () => {
     const container = document.createElement('div');
     const unmount = render(container, 'Hello World');
-    expect(container.innerHTML).toMatchInlineSnapshot(`"Hello World"`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`"Hello World"`);
 
     unmount();
-    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
   });
   it('should render thunk text node', () => {
     const container = document.createElement('div');
     const unmount = render(container, () => 'Hello World');
-    expect(container.innerHTML).toMatchInlineSnapshot(`"Hello World"`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`"Hello World"`);
 
     unmount();
-    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
   });
   it('should render state text node', () => {
     const container = document.createElement('div');
     const name = state('World');
     const unmount = render(container, () => `Hello ${name()}`);
-    expect(container.innerHTML).toMatchInlineSnapshot(`"Hello World"`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`"Hello World"`);
 
     name('Universe');
-    expect(container.innerHTML).toMatchInlineSnapshot(`"Hello World"`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`"Hello World"`);
 
     flush();
-    expect(container.innerHTML).toMatchInlineSnapshot(`"Hello Universe"`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`"Hello Universe"`);
 
     unmount();
-    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
 
     name('Multiverse');
     flush();
     // unmounted, should not update
-    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
   });
 
   it('should render empty null', () => {
     const container = document.createElement('div');
     const unmount = render(container, null);
-    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
 
     unmount();
-    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
   });
   it('should render empty undefined', () => {
     const container = document.createElement('div');
     const unmount = render(container, undefined);
-    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
 
     unmount();
-    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
   });
 
   it('should render empty element', () => {
     const container = document.createElement('div');
     const unmount = render(container, <div />);
-    expect(container.innerHTML).toMatchInlineSnapshot(`"<div></div>"`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`"<div></div>"`);
 
     unmount();
-    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
   });
 
   it('should render a simple element', () => {
     const container = document.createElement('div');
     const unmount = render(container, <div>Hello World</div>);
-    expect(container.innerHTML).toMatchInlineSnapshot(
+    expect(prettyDOM(container)).toMatchInlineSnapshot(
       `"<div>Hello World</div>"`,
     );
     unmount();
-    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
   });
 
   it('should render a thunk element', () => {
     const container = document.createElement('div');
     const unmount = render(container, () => <div>Hello World</div>);
-    expect(container.innerHTML).toMatchInlineSnapshot(
+    expect(prettyDOM(container)).toMatchInlineSnapshot(
       `"<div>Hello World</div>"`,
     );
 
     unmount();
-    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
   });
 
   it('should render const content', () => {
     const container = document.createElement('div');
     const name = 'World';
     const unmount = render(container, <div>Hello {name}</div>);
-    expect(container.innerHTML).toMatchInlineSnapshot(
+    expect(prettyDOM(container)).toMatchInlineSnapshot(
       `"<div>Hello World</div>"`,
     );
 
     unmount();
-    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
   });
   it('should render number/boolean/null/undefined content', () => {
     const container = document.createElement('div');
@@ -107,45 +108,45 @@ describe('render', () => {
         ', undefined '{undefined}'
       </div>,
     );
-    expect(container.innerHTML).toMatchInlineSnapshot(
+    expect(prettyDOM(container)).toMatchInlineSnapshot(
       `"<div>zero '0', number '42', true '', false '', null '', undefined ''</div>"`,
     );
 
     unmount();
-    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
   });
   it('should render thunk content', () => {
     const container = document.createElement('div');
     const name = 'World';
     const unmount = render(container, <div>Hello {() => name}</div>);
-    expect(container.innerHTML).toMatchInlineSnapshot(
+    expect(prettyDOM(container)).toMatchInlineSnapshot(
       `"<div>Hello World</div>"`,
     );
 
     unmount();
-    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
   });
 
   it('should render state content', () => {
     const container = document.createElement('div');
     const name = state('World');
     const unmount = render(container, <div>Hello {name}</div>);
-    expect(container.innerHTML).toMatchInlineSnapshot(
+    expect(prettyDOM(container)).toMatchInlineSnapshot(
       `"<div>Hello World</div>"`,
     );
 
     name('Universe');
-    expect(container.innerHTML).toMatchInlineSnapshot(
+    expect(prettyDOM(container)).toMatchInlineSnapshot(
       `"<div>Hello World</div>"`,
     );
 
     flush();
-    expect(container.innerHTML).toMatchInlineSnapshot(
+    expect(prettyDOM(container)).toMatchInlineSnapshot(
       `"<div>Hello Universe</div>"`,
     );
 
     unmount();
-    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
   });
 
   it('should render nested elements', () => {
@@ -156,12 +157,17 @@ describe('render', () => {
         Hello <span>World</span>
       </div>,
     );
-    expect(container.innerHTML).toMatchInlineSnapshot(
-      `"<div>Hello <span>World</span></div>"`,
+    expect(prettyDOM(container)).toMatchInlineSnapshot(
+      `
+      "<div>
+        Hello
+        <span>World</span>
+      </div>"
+    `,
     );
 
     unmount();
-    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
   });
   it('should render multiple children', () => {
     const container = document.createElement('div');
@@ -173,12 +179,18 @@ describe('render', () => {
         <li>Item 3</li>
       </ul>,
     );
-    expect(container.innerHTML).toMatchInlineSnapshot(
-      `"<ul><li>Item 1</li><li>Item 2</li><li>Item 3</li></ul>"`,
+    expect(prettyDOM(container)).toMatchInlineSnapshot(
+      `
+      "<ul>
+        <li>Item 1</li>
+        <li>Item 2</li>
+        <li>Item 3</li>
+      </ul>"
+    `,
     );
 
     unmount();
-    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
   });
   it('should render fragment', () => {
     const container = document.createElement('div');
@@ -189,12 +201,15 @@ describe('render', () => {
         <div>Item 2</div>
       </>,
     );
-    expect(container.innerHTML).toMatchInlineSnapshot(
-      `"<div>Item 1</div><div>Item 2</div>"`,
+    expect(prettyDOM(container)).toMatchInlineSnapshot(
+      `
+      "<div>Item 1</div>
+      <div>Item 2</div>"
+    `,
     );
 
     unmount();
-    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
   });
 
   it('should render nested fragments', () => {
@@ -211,12 +226,16 @@ describe('render', () => {
         </>
       </>,
     );
-    expect(container.innerHTML).toMatchInlineSnapshot(
-      `"<div>Item 1</div><div>Item 2</div><div>Item 3</div>"`,
+    expect(prettyDOM(container)).toMatchInlineSnapshot(
+      `
+      "<div>Item 1</div>
+      <div>Item 2</div>
+      <div>Item 3</div>"
+    `,
     );
 
     unmount();
-    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
   });
 
   it('should render array children without key', () => {
@@ -230,12 +249,18 @@ describe('render', () => {
         ))}
       </ul>,
     );
-    expect(container.innerHTML).toMatchInlineSnapshot(
-      `"<ul><li>Item 1</li><li>Item 2</li><li>Item 3</li></ul>"`,
+    expect(prettyDOM(container)).toMatchInlineSnapshot(
+      `
+      "<ul>
+        <li>Item 1</li>
+        <li>Item 2</li>
+        <li>Item 3</li>
+      </ul>"
+    `,
     );
 
     unmount();
-    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
   });
 
   it('should render array children with key', () => {
@@ -249,12 +274,18 @@ describe('render', () => {
         ))}
       </ul>,
     );
-    expect(container.innerHTML).toMatchInlineSnapshot(
-      `"<ul><li>Item 1</li><li>Item 2</li><li>Item 3</li></ul>"`,
+    expect(prettyDOM(container)).toMatchInlineSnapshot(
+      `
+      "<ul>
+        <li>Item 1</li>
+        <li>Item 2</li>
+        <li>Item 3</li>
+      </ul>"
+    `,
     );
 
     unmount();
-    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
   });
 
   it('should render thunk array children', () => {
@@ -264,12 +295,18 @@ describe('render', () => {
       container,
       <ul>{() => items.map((item) => <li key={item}>{item}</li>)}</ul>,
     );
-    expect(container.innerHTML).toMatchInlineSnapshot(
-      `"<ul><li>Item 1</li><li>Item 2</li><li>Item 3</li></ul>"`,
+    expect(prettyDOM(container)).toMatchInlineSnapshot(
+      `
+      "<ul>
+        <li>Item 1</li>
+        <li>Item 2</li>
+        <li>Item 3</li>
+      </ul>"
+    `,
     );
 
     unmount();
-    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
   });
 
   it('should render nested array children', () => {
@@ -286,12 +323,19 @@ describe('render', () => {
         )}
       </div>,
     );
-    expect(container.innerHTML).toMatchInlineSnapshot(
-      `"<div><span>Item 1.1</span><span>Item 1.2</span><span>Item 2.1</span><span>Item 2.2</span></div>"`,
+    expect(prettyDOM(container)).toMatchInlineSnapshot(
+      `
+      "<div>
+        <span>Item 1.1</span>
+        <span>Item 1.2</span>
+        <span>Item 2.1</span>
+        <span>Item 2.2</span>
+      </div>"
+    `,
     );
 
     unmount();
-    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
   });
 
   it('should preserve dom elements', () => {
@@ -310,8 +354,14 @@ describe('render', () => {
       li.dataset.testId = `li-${index}`;
     });
 
-    expect(container.innerHTML).toMatchInlineSnapshot(
-      `"<ul><li data-test-id="li-0">Item 1</li><li data-test-id="li-1">Item 2</li><li data-test-id="li-2">Item 3</li></ul>"`,
+    expect(prettyDOM(container)).toMatchInlineSnapshot(
+      `
+      "<ul>
+        <li data-test-id="li-0">Item 1</li>
+        <li data-test-id="li-1">Item 2</li>
+        <li data-test-id="li-2">Item 3</li>
+      </ul>"
+    `,
     );
 
     debugContext();
@@ -328,8 +378,14 @@ describe('render', () => {
     expect(newLiElements[2].dataset.testId).toBe('li-2');
 
     debugContext();
-    expect(container.innerHTML).toMatchInlineSnapshot(
-      `"<ul><li data-test-id="li-0">Item 1</li><li data-test-id="li-1">Item 2</li><li data-test-id="li-2">Item 3</li></ul>"`,
+    expect(prettyDOM(container)).toMatchInlineSnapshot(
+      `
+      "<ul>
+        <li data-test-id="li-0">Item 1</li>
+        <li data-test-id="li-1">Item 2</li>
+        <li data-test-id="li-2">Item 3</li>
+      </ul>"
+    `,
     );
 
     console.log('--- re-render with different items ---');
@@ -340,8 +396,14 @@ describe('render', () => {
 
     debugContext();
 
-    expect(container.innerHTML).toMatchInlineSnapshot(
-      `"<ul><li data-test-id="li-1">Item 2</li><li data-test-id="li-2">Item 3</li><li>Item 4</li></ul>"`,
+    expect(prettyDOM(container)).toMatchInlineSnapshot(
+      `
+      "<ul>
+        <li data-test-id="li-1">Item 2</li>
+        <li data-test-id="li-2">Item 3</li>
+        <li>Item 4</li>
+      </ul>"
+    `,
     );
 
     newLiElements = getLiElements();
@@ -358,12 +420,19 @@ describe('render', () => {
 
     debugContext();
 
-    expect(container.innerHTML).toMatchInlineSnapshot(
-      `"<ul><li>Item 4</li><li data-test-id="li-2">Item 3</li><li data-test-id="li-1">Item 2</li><li>Item 5</li></ul>"`,
+    expect(prettyDOM(container)).toMatchInlineSnapshot(
+      `
+      "<ul>
+        <li>Item 4</li>
+        <li data-test-id="li-2">Item 3</li>
+        <li data-test-id="li-1">Item 2</li>
+        <li>Item 5</li>
+      </ul>"
+    `,
     );
 
     unmount();
-    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
   });
 
   it('should render mixed content', () => {
@@ -381,11 +450,21 @@ describe('render', () => {
       </div>
     ));
 
-    expect(container.innerHTML).toMatchInlineSnapshot(
-      `"<div><span>const</span><span>thunk</span>count: 3<span>Item 1</span><span>Item 2</span><span>Item 3</span>rerun: 0</div>"`,
+    expect(prettyDOM(container)).toMatchInlineSnapshot(
+      `
+      "<div>
+        <span>const</span>
+        <span>thunk</span>
+        count: 3
+        <span>Item 1</span>
+        <span>Item 2</span>
+        <span>Item 3</span>
+        rerun: 0
+      </div>"
+    `,
     );
 
     unmount();
-    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
   });
 });
