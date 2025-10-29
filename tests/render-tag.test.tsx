@@ -450,19 +450,69 @@ describe('render', () => {
       </div>
     ));
 
+    const spans = container.querySelectorAll('span');
+    spans[0]!.dataset.testId = 'span-const';
+    spans[1]!.dataset.testId = 'span-thunk';
+    spans[2]!.dataset.testId = 'span-item-1';
+    spans[3]!.dataset.testId = 'span-item-2';
+    spans[4]!.dataset.testId = 'span-item-3';
+
     expect(prettyDOM(container)).toMatchInlineSnapshot(
       `
       "<div>
-        <span>const</span>
-        <span>thunk</span>
+        <span data-test-id="span-const">const</span>
+        <span data-test-id="span-thunk">thunk</span>
         count: 3
-        <span>Item 1</span>
-        <span>Item 2</span>
-        <span>Item 3</span>
+        <span data-test-id="span-item-1">Item 1</span>
+        <span data-test-id="span-item-2">Item 2</span>
+        <span data-test-id="span-item-3">Item 3</span>
         rerun: 0
       </div>"
     `,
     );
+
+    debugContext();
+
+    count(4);
+    flush();
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`
+      "<div>
+        <span data-test-id="span-const">const</span>
+        <span data-test-id="span-thunk">thunk</span>
+        count: 4
+        <span data-test-id="span-item-1">Item 1</span>
+        <span data-test-id="span-item-2">Item 2</span>
+        <span data-test-id="span-item-3">Item 3</span>
+        rerun: 0
+      </div>"
+    `)
+
+    items(['Item 2','Item 1', 'Item 4']);
+    flush();
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`
+      "<div>
+        <span data-test-id="span-const">const</span>
+        <span data-test-id="span-thunk">thunk</span>
+        count: 4 rerun: 0
+        <span data-test-id="span-item-2">Item 2</span>
+        <span data-test-id="span-item-1">Item 1</span>
+        <span>Item 4</span>
+      </div>"
+    `);
+
+    rerun(1);
+    flush();
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`
+      "<div>
+        <span data-test-id="span-const">const</span>
+        <span data-test-id="span-thunk">thunk</span>
+        count:
+        <span data-test-id="span-item-2">Item 2</span>
+        <span data-test-id="span-item-1">Item 1</span>
+        <span>Item 4</span>
+        4 rerun: 1
+      </div>"
+    `);
 
     unmount();
     expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
