@@ -92,6 +92,9 @@ describe('render', () => {
     const container = document.createElement('div');
     const name = 'World';
     const unmount = render(container, <div>Hello {name}</div>);
+
+    debugContext();
+
     expect(prettyDOM(container)).toMatchInlineSnapshot(
       `"<div>Hello World</div>"`,
     );
@@ -485,9 +488,9 @@ describe('render', () => {
         <span data-test-id="span-item-3">Item 3</span>
         rerun: 0
       </div>"
-    `)
+    `);
 
-    items(['Item 2','Item 1', 'Item 4']);
+    items(['Item 2', 'Item 1', 'Item 4']);
     flush();
     expect(prettyDOM(container)).toMatchInlineSnapshot(`
       "<div>
@@ -500,7 +503,7 @@ describe('render', () => {
       </div>"
     `);
 
-debugContext();
+    debugContext();
 
     rerun(1);
     flush();
@@ -516,7 +519,66 @@ debugContext();
       </div>"
     `);
 
-debugContext();
+    debugContext();
+
+    unmount();
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
+  });
+
+  it('should handle swapping elements in thunks', () => {
+    const container = document.createElement('div');
+    const swap = state(false);
+    const unmount = render(container, () => (
+      <div>
+        {() =>
+          swap()
+            ? [<span key="b">B</span>, <span key="a">A</span>]
+            : [<span key="a">A</span>, <span key="b">B</span>]
+        }
+      </div>
+    ));
+
+    debugContext();
+    const spans = container.querySelectorAll('span');
+    spans[0]!.dataset.testId = 'span-1';
+    spans[1]!.dataset.testId = 'span-2';
+
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`"<div></div>"`);
+
+    swap(true);
+    flush();
+
+    debugContext();
+
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`"<div></div>"`);
+
+    unmount();
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
+  });
+
+  it('should handle swapping elements between thunks', () => {
+    const container = document.createElement('div');
+    const swap = state(false);
+    const unmount = render(container, () => (
+      <div>
+        {() => (swap() ? <span key="b">B</span> : <span key="a">A</span>)}
+        {() => (swap() ? <span key="a">A</span> : <span key="b">B</span>)}
+      </div>
+    ));
+
+    debugContext();
+    const spans = container.querySelectorAll('span');
+    spans[0]!.dataset.testId = 'span-1';
+    spans[1]!.dataset.testId = 'span-2';
+
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`"<div></div>"`);
+
+    swap(true);
+    flush();
+
+    debugContext();
+
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`"<div></div>"`);
 
     unmount();
     expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);

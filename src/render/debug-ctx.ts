@@ -53,9 +53,14 @@ export function debugContext() {
 
 export function _debugContext(rctx: RenderContext, key: string | number) {
   _log(`[${key}]`, getCtxDebugName(rctx), 'JSX:', rctx?.lastJsxNode);
-  rctx.childrenCtxsMap?.forEach((childCtx, key) => {
+  rctx.childContexts.byIndex?.forEach((childCtx, index) => {
     _withIndent(() => {
-      _debugContext(childCtx, key);
+      if (!childCtx) {
+        _log(`[${index}] .`);
+        return;
+      }
+      const childKey = rctx.childContexts.keyMap.get(childCtx);
+      _debugContext(childCtx, childKey ?? index);
     });
   });
 }

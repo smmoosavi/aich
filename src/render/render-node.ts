@@ -37,13 +37,15 @@ import { getCtxDebugName } from './debug-ctx';
 export function renderNodes(nodes: LazyJSXChildren): UnmountFn {
   _log('renderNodes', { nodes });
   const ctx = getRenderContext();
-  if(isThunk(nodes)) {
+  if (isThunk(nodes)) {
     const dispose = immediate(() => {
       _log('renderNodes.immediate (thunk)', { nodes });
       const resolvedContent = nodes();
       _log('renderNodes.immediate.resolved', { resolvedContent });
       withRenderContext(ctx, () => {
-        _log('renderNodes.immediate.withRenderContext', { resolvedContent });
+        _log('renderNodes.immediate.withRenderContext', getCtxDebugName(ctx), {
+          resolvedContent,
+        });
         renderNodes(resolvedContent);
       });
     });
@@ -65,9 +67,9 @@ export function renderNode(node: LazyJSXChild): UnmountFn {
   _log('renderNode', getCtxDebugName(ctx), { node });
   // todo - if not thunk, can optimize by not using immediate
   const dispose = immediate(() => {
-    _log('renderNode.immediate', { node });
+    _log('renderNode.immediate', getCtxDebugName(ctx), { node });
     withRenderContext(ctx, () => {
-      _log('renderNode.withRenderContext', { node });
+      _log('renderNode.withRenderContext', getCtxDebugName(ctx), { node });
       const resolvedContent = resolveValue(node);
       ctx.unmount = _renderNode(resolvedContent);
       ctx.lastJsxNode = resolvedContent;

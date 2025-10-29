@@ -17,7 +17,7 @@ export interface RenderContext {
   parent: AnyTElement;
   lastJsxNode?: JSXChild;
   lastNode?: AnyTNode;
-  childrenCtxs: ChildrenCtxs;
+  childContexts: ChildContexts;
   unmount?: UnmountFn;
 }
 
@@ -45,13 +45,17 @@ export function getChildContext(
   parent?: AnyTElement,
 ): RenderContext {
   const ctx = getRenderContext();
-  if (!ctx.childrenCtxs.byKey.has(key)) {
+  if (!ctx.childContexts.byKey.has(key)) {
     _log('++Creating new child context for key:', key);
-    addCtxToChildrenCtxs(key, ctx.childrenCtxs, createCtx(ctx.renderer, parent ?? ctx.parent));
+    addCtxToChildContexts(
+      key,
+      ctx.childContexts,
+      createCtx(ctx.renderer, parent ?? ctx.parent),
+    );
   } else {
     _log('Reusing existing child context for key:', key);
   }
-  return ctx.childrenCtxs.byKey.get(key)!;
+  return ctx.childContexts.byKey.get(key)!;
 }
 
 export function createCtx(
@@ -61,48 +65,52 @@ export function createCtx(
   const ctx: RenderContext = {
     renderer,
     parent,
-    childrenCtxs: createChildrenCtxs(),
+    childContexts: createChildContexts(),
   };
   _log('+++Created new render context:', getCtxDebugName(ctx));
   return ctx;
 }
 
 // --- children ctx ---
-interface ChildrenCtxs {
+interface ChildContexts {
   byKey: Map<string | number, RenderContext>;
   byIndex: (RenderContext | null)[];
   indexMap: Map<RenderContext, number>;
+  keyMap: Map<RenderContext, string | number>;
 }
 
-export function createChildrenCtxs(): ChildrenCtxs {
+export function createChildContexts(): ChildContexts {
   return {
     byKey: new Map<string | number, RenderContext>(),
     byIndex: [],
     indexMap: new Map<RenderContext, number>(),
+    keyMap: new Map<RenderContext, string | number>(),
   };
 }
 
-export function addCtxToChildrenCtxs(
+export function addCtxToChildContexts(
   key: string | number,
-  childrenCtxs: ChildrenCtxs,
+  childContexts: ChildContexts,
   ctx: RenderContext,
 ): void {
-  childrenCtxs.byKey.set(key, ctx);
-  const index = childrenCtxs.byIndex.length;
-  childrenCtxs.byIndex.push(ctx);
-  childrenCtxs.indexMap.set(ctx, index);
+  childContexts.byKey.set(key, ctx);
+  const index = childContexts.byIndex.length;
+  childContexts.byIndex.push(ctx);
+  childContexts.indexMap.set(ctx, index);
+  childContexts.keyMap.set(ctx, key);
 }
 
-export  function removeCtxFromChildrenCtxs(
+export function removeCtxFromChildContexts(
   key: string | number,
-  childrenCtxs: ChildrenCtxs,
+  childContexts: ChildContexts,
   ctx: RenderContext,
 ): void {
-  const index = childrenCtxs.indexMap.get(ctx);
+  const index = childContexts.indexMap.get(ctx);
   if (index === undefined) {
     return;
   }
-  childrenCtxs.byKey.delete(key);
-  childrenCtxs.indexMap.delete(ctx);
-  childrenCtxs.byIndex[index] = null;
+  childContexts.byKey.delete(key);
+  childContexts.keyMap.delete(ctx);
+  childContexts.indexMap.delete(ctx);
+  childContexts.byIndex[index] = null;
 }
