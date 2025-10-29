@@ -53,7 +53,7 @@ export function debugContext() {
 
 export function _debugContext(rctx: RenderContext, key: string | number) {
   _log(`[${key}]`, getCtxDebugName(rctx), 'JSX:', rctx?.lastJsxNode);
-  rctx.childrenCtxs?.forEach((childCtx, key) => {
+  rctx.childrenCtxsMap?.forEach((childCtx, key) => {
     _withIndent(() => {
       _debugContext(childCtx, key);
     });

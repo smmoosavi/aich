@@ -17,7 +17,7 @@ export interface RenderContext {
   parent: AnyTElement;
   lastJsxNode?: JSXChild;
   lastNode?: AnyTNode;
-  childrenCtxs?: Map<string | number, RenderContext>;
+  childrenCtxs: ChildrenCtxs;
   unmount?: UnmountFn;
 }
 
@@ -45,24 +45,64 @@ export function getChildContext(
   parent?: AnyTElement,
 ): RenderContext {
   const ctx = getRenderContext();
-  if (ctx.childrenCtxs === undefined) {
-    _log('+Initializing childrenCtxs map');
-    ctx.childrenCtxs = new Map<string | number, RenderContext>();
-  }
-  if (!ctx.childrenCtxs.has(key)) {
+  if (!ctx.childrenCtxs.byKey.has(key)) {
     _log('++Creating new child context for key:', key);
-    ctx.childrenCtxs.set(key, createCtx(ctx.renderer, parent ?? ctx.parent));
+    addCtxToChildrenCtxs(key, ctx.childrenCtxs, createCtx(ctx.renderer, parent ?? ctx.parent));
   } else {
     _log('Reusing existing child context for key:', key);
   }
-  return ctx.childrenCtxs.get(key)!;
+  return ctx.childrenCtxs.byKey.get(key)!;
 }
 
 export function createCtx(
   renderer: AnyRenderer,
   parent: AnyTElement,
 ): RenderContext {
-  const ctx: RenderContext = { renderer, parent };
+  const ctx: RenderContext = {
+    renderer,
+    parent,
+    childrenCtxs: createChildrenCtxs(),
+  };
   _log('+++Created new render context:', getCtxDebugName(ctx));
   return ctx;
+}
+
+// --- children ctx ---
+interface ChildrenCtxs {
+  byKey: Map<string | number, RenderContext>;
+  byIndex: (RenderContext | null)[];
+  indexMap: Map<RenderContext, number>;
+}
+
+export function createChildrenCtxs(): ChildrenCtxs {
+  return {
+    byKey: new Map<string | number, RenderContext>(),
+    byIndex: [],
+    indexMap: new Map<RenderContext, number>(),
+  };
+}
+
+export function addCtxToChildrenCtxs(
+  key: string | number,
+  childrenCtxs: ChildrenCtxs,
+  ctx: RenderContext,
+): void {
+  childrenCtxs.byKey.set(key, ctx);
+  const index = childrenCtxs.byIndex.length;
+  childrenCtxs.byIndex.push(ctx);
+  childrenCtxs.indexMap.set(ctx, index);
+}
+
+export  function removeCtxFromChildrenCtxs(
+  key: string | number,
+  childrenCtxs: ChildrenCtxs,
+  ctx: RenderContext,
+): void {
+  const index = childrenCtxs.indexMap.get(ctx);
+  if (index === undefined) {
+    return;
+  }
+  childrenCtxs.byKey.delete(key);
+  childrenCtxs.indexMap.delete(ctx);
+  childrenCtxs.byIndex[index] = null;
 }
