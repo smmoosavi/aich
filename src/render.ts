@@ -2,7 +2,11 @@ import type { LazyJSXChild } from 'aich/jsx-runtime';
 import type { AnyTElement, Renderer, RendererElement } from './renderer';
 
 import type { AnyRenderer } from './renderer';
-import { createCtx, withRenderContext, type RenderContext } from './render/render-context';
+import {
+  createCtx,
+  withRenderContext,
+  type RenderContext,
+} from './render/render-context';
 import { renderNode } from './render/render-node';
 import { resetDebugCtx } from './render/debug-ctx';
 
@@ -21,7 +25,7 @@ function _render(
   container: AnyTElement,
   content: LazyJSXChild,
 ) {
-  resetDebugCtx()
+  resetDebugCtx();
   console.log('----- render -----', { container, content });
   const ctx: RenderContext = createCtx(renderer, container);
   rootCtx = ctx;

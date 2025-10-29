@@ -263,15 +263,16 @@ export function isSameNode(old: JSXChild, next: JSXChild): boolean {
   return false;
 }
 
-export function updateElement(
-  nextNode: JSXChild,
-) {
+export function updateElement(nextNode: JSXChild) {
   const ctx = getRenderContext();
-  _log('updateElement', getCtxDebugName(ctx), { oldNode: ctx.lastJsxNode, nextNode });
+  _log('updateElement', getCtxDebugName(ctx), {
+    oldNode: ctx.lastJsxNode,
+    nextNode,
+  });
   // this functions called when ctx.lastJsxNode isSameNode to nextNode
   // this is function only is called for elements
   // so we can reuse the existing ctx.lastNode and just update its attributes, event listeners
   // children is not handled here - it is handled in renderNodes
-  
+
   // todo: update attributes, event listeners
 }

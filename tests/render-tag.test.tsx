@@ -330,7 +330,6 @@ describe('render', () => {
       `"<ul><li data-test-id="li-0">Item 1</li><li data-test-id="li-1">Item 2</li><li data-test-id="li-2">Item 3</li></ul>"`,
     );
 
-
     console.log('--- re-render with different items ---');
 
     // re-render with different items
@@ -345,7 +344,6 @@ describe('render', () => {
     expect(container.innerHTML).toMatchInlineSnapshot(
       `"<ul><li data-test-id="li-1">Item 2</li><li data-test-id="li-2">Item 3</li><li>Item 4</li></ul>"`,
     );
-
 
     unmount();
     expect(container.innerHTML).toMatchInlineSnapshot(`""`);

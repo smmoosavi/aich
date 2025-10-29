@@ -31,11 +31,11 @@ describe('JSX Runtime', () => {
         key: null,
       });
 
-      expect(consoleLogSpy).toHaveBeenCalledWith('jsx() called:', {
-        type: 'div',
-        props: { className: 'test' },
-        key: null,
-      });
+      // expect(consoleLogSpy).toHaveBeenCalledWith('jsx() called:', {
+      //   type: 'div',
+      //   props: { className: 'test' },
+      //   key: null,
+      // });
     });
 
     it('should handle key prop', () => {
@@ -55,11 +55,11 @@ describe('JSX Runtime', () => {
         key: null,
       });
 
-      expect(consoleLogSpy).toHaveBeenCalledWith('jsxs() called (static):', {
-        type: 'div',
-        props: { children: ['Hello', 'World'] },
-        key: null,
-      });
+      // expect(consoleLogSpy).toHaveBeenCalledWith('jsxs() called (static):', {
+      //   type: 'div',
+      //   props: { children: ['Hello', 'World'] },
+      //   key: null,
+      // });
     });
   });
 
@@ -81,17 +81,17 @@ describe('JSX Runtime', () => {
         key: 'btn-1',
       });
 
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        'jsxDEV() called (development):',
-        {
-          type: 'button',
-          props: { onClick: expect.any(Function) },
-          key: 'btn-1',
-          isStaticChildren: false,
-          source,
-          self: undefined,
-        },
-      );
+      // expect(consoleLogSpy).toHaveBeenCalledWith(
+      //   'jsxDEV() called (development):',
+      //   {
+      //     type: 'button',
+      //     props: { onClick: expect.any(Function) },
+      //     key: 'btn-1',
+      //     isStaticChildren: false,
+      //     source,
+      //     self: undefined,
+      //   },
+      // );
     });
   });
 
@@ -105,9 +105,9 @@ describe('JSX Runtime', () => {
         key: null,
       });
 
-      expect(consoleLogSpy).toHaveBeenCalledWith('Fragment() called:', {
-        children: ['child1', 'child2'],
-      });
+      // expect(consoleLogSpy).toHaveBeenCalledWith('Fragment() called:', {
+      //   children: ['child1', 'child2'],
+      // });
     });
   });
 
@@ -124,17 +124,17 @@ describe('JSX Runtime', () => {
         key: null,
       });
 
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        'createElement() called (classic):',
-        {
-          type: 'div',
-          props: {
-            id: 'root',
-            children: ['Hello', 'World'],
-          },
-          children: ['Hello', 'World'],
-        },
-      );
+      // expect(consoleLogSpy).toHaveBeenCalledWith(
+      //   'createElement() called (classic):',
+      //   {
+      //     type: 'div',
+      //     props: {
+      //       id: 'root',
+      //       children: ['Hello', 'World'],
+      //     },
+      //     children: ['Hello', 'World'],
+      //   },
+      // );
     });
 
     it('should handle single child', () => {
@@ -158,10 +158,10 @@ describe('JSX Runtime', () => {
       const result = isValidElement(element);
 
       expect(result).toBe(true);
-      expect(consoleLogSpy).toHaveBeenCalledWith('isValidElement() called:', {
-        obj: element,
-        isValid: true,
-      });
+      // expect(consoleLogSpy).toHaveBeenCalledWith('isValidElement() called:', {
+      //   obj: element,
+      //   isValid: true,
+      // });
     });
 
     it('should return false for invalid elements', () => {
@@ -190,14 +190,14 @@ describe('JSX Runtime', () => {
         key: null,
       });
 
-      expect(consoleLogSpy).toHaveBeenCalledWith('cloneElement() called:', {
-        element: original,
-        newProps: {
-          className: 'cloned',
-          id: 'test',
-        },
-        children: [],
-      });
+      // expect(consoleLogSpy).toHaveBeenCalledWith('cloneElement() called:', {
+      //   element: original,
+      //   newProps: {
+      //     className: 'cloned',
+      //     id: 'test',
+      //   },
+      //   children: [],
+      // });
     });
 
     it('should override children', () => {

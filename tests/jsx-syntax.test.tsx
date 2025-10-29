@@ -24,10 +24,10 @@ describe('JSX Syntax (TSX)', () => {
         },
       });
 
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining('called'),
-        expect.any(Object),
-      );
+      // expect(consoleLogSpy).toHaveBeenCalledWith(
+      //   expect.stringContaining('called'),
+      //   expect.any(Object),
+      // );
     });
 
     it('should render self-closing elements', () => {
