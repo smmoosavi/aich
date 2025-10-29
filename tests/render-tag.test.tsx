@@ -1,6 +1,7 @@
 import { debugContext } from '../src/render/debug-ctx';
 import { flush, state } from '../src';
 import { render } from '../src/dom';
+
 describe('render', () => {
   it('should render text node', () => {
     const container = document.createElement('div');
@@ -359,6 +360,29 @@ describe('render', () => {
 
     expect(container.innerHTML).toMatchInlineSnapshot(
       `"<ul><li>Item 4</li><li data-test-id="li-2">Item 3</li><li data-test-id="li-1">Item 2</li><li>Item 5</li></ul>"`,
+    );
+
+    unmount();
+    expect(container.innerHTML).toMatchInlineSnapshot(`""`);
+  });
+
+  it('should render mixed content', () => {
+    const container = document.createElement('div');
+    const items = state(['Item 1', 'Item 2', 'Item 3']);
+    const count = state(3);
+    const rerun = state(0);
+    const unmount = render(container, () => (
+      <div>
+        <span>const</span>
+        {() => <span>thunk</span>}
+        count: {count}
+        {() => items().map((item) => <span key={item}>{item}</span>)}
+        rerun: {rerun()}
+      </div>
+    ));
+
+    expect(container.innerHTML).toMatchInlineSnapshot(
+      `"<div><span>const</span><span>thunk</span>count: 3<span>Item 1</span><span>Item 2</span><span>Item 3</span>rerun: 0</div>"`,
     );
 
     unmount();
