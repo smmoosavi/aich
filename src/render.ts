@@ -27,7 +27,7 @@ function _render(
 ) {
   resetDebugCtx();
   console.log('----- render -----', { container, content });
-  const ctx: RenderContext = createCtx(renderer, container);
+  const ctx: RenderContext = createCtx('', renderer, container);
   rootCtx = ctx;
   return withRenderContext(ctx, () => {
     return renderNode(content);

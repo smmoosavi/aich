@@ -14,6 +14,7 @@ import {
 import {
   getChildContext,
   getRenderContext,
+  removeCtxFromChildContexts,
   withRenderContext,
   type RenderContext,
   type UnmountFn,
@@ -34,32 +35,63 @@ import { getCtxDebugName } from './debug-ctx';
 // element (intrinsic, component, fragment)
 // array of nodes
 // thunk returning any of above
-export function renderNodes(nodes: LazyJSXChildren): UnmountFn {
+export function renderNodes(
+  nodes: LazyJSXChildren,
+  index: number = 0,
+): UnmountFn {
   _log('renderNodes', { nodes });
-  const ctx = getRenderContext();
   if (isThunk(nodes)) {
-    const dispose = immediate(() => {
-      _log('renderNodes.immediate (thunk)', { nodes });
-      const resolvedContent = nodes();
-      _log('renderNodes.immediate.resolved', { resolvedContent });
-      withRenderContext(ctx, () => {
-        _log('renderNodes.immediate.withRenderContext', getCtxDebugName(ctx), {
-          resolvedContent,
-        });
-        renderNodes(resolvedContent);
-      });
-    });
-    return () => {
-      _log('renderNodes.cleanup (thunk)', { nodes });
-      dispose();
-    };
+    return renderThunkNodes(nodes, index);
   }
 
   if (Array.isArray(nodes)) {
-    return () => {}; // todo implement array handling
+    return renderArrayNodes(nodes, index);
   }
 
-  return renderNode(nodes);
+  return renderSingleNode(nodes, index);
+}
+
+function renderThunkNodes(
+  thunk: () => JSXChild | JSXChild[],
+  index: number,
+): UnmountFn {
+  const ctx = getRenderContext();
+
+  const dispose = immediate(() => {
+    _log('renderNodes.immediate (thunk)', { thunk });
+    const resolvedContent = thunk();
+    _log('renderNodes.immediate.resolved', { resolvedContent });
+    withRenderContext(ctx, () => {
+      _log('renderNodes.immediate.withRenderContext', getCtxDebugName(ctx), {
+        resolvedContent,
+      });
+      renderNodes(resolvedContent, index);
+    });
+  });
+  return () => {
+    _log('renderNodes.cleanup (thunk)', { thunk });
+    dispose();
+  };
+}
+
+function renderArrayNodes(
+  arr: (LazyJSXChild | LazyJSXChild[])[],
+  startIndex: number,
+): UnmountFn {
+  // todo implement array handling
+  return () => {};
+}
+
+function renderSingleNode(node: JSXChild, index: number): UnmountFn {
+  const ctx = getRenderContext();
+  const key = getChildKey(node, index);
+  const childCtx = getChildContext(key);
+  if (!isSameNode(ctx.lastJsxNode, node)) {
+    ctx.unmount?.();
+    removeCtxFromChildContexts(ctx.childContexts, childCtx);
+  }
+
+  return renderNode(node);
 }
 
 export function renderNode(node: LazyJSXChild): UnmountFn {
@@ -212,14 +244,14 @@ export function renderChildren(
   });
 }
 
-function getChildKey(child: LazyJSXChild, index: number): string | number {
+function getChildKey(child: LazyJSXChild, index: number): string {
   if (isValidElement(child)) {
     const el = child as JSXElement;
     if (el.key !== undefined && el.key !== null) {
-      return String(el.key);
+      return 'k:' + String(el.key);
     }
   }
-  return index;
+  return 'i:' + index;
 }
 
 // we should update or remove old and add new one?

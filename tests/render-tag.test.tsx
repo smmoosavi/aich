@@ -583,4 +583,64 @@ describe('render', () => {
     unmount();
     expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
   });
+
+  it('should handle swapping element key', () => {
+    const container = document.createElement('div');
+    const swap = state(false);
+    const unmount = render(container, () => (
+      <div>
+        {() => (swap() ? <span key="b">B</span> : <span key="a">A</span>)}
+      </div>
+    ));
+
+    debugContext();
+    const spans = container.querySelectorAll('span');
+    spans[0]!.dataset.testId = 'span-1';
+
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`
+      "<div>
+        <span data-test-id="span-1">A</span>
+      </div>"
+    `);
+
+    swap(true);
+    flush();
+
+    debugContext();
+
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`
+      "<div>
+        <span data-test-id="span-1">B</span>
+      </div>"
+    `);
+
+    unmount();
+    expect(prettyDOM(container)).toMatchInlineSnapshot(`""`);
+  });
+
+  it('should handle swapping element key', () => {
+    const container = document.createElement('div');
+    const swap = state(false);
+    const unmount = render(container, () => (
+      <div>
+        {() => (swap() ? <span key="x">B</span> : <div key="x">A</div>)}
+      </div>
+    ));
+
+    debugContext();
+    const spans = container.querySelectorAll('span');
+    spans[0]!.dataset.testId = 'span-1';
+
+    expect(prettyDOM(container)).toMatchInlineSnapshot();
+
+    swap(true);
+    flush();
+
+    debugContext();
+
+    expect(prettyDOM(container)).toMatchInlineSnapshot();
+
+    unmount();
+    expect(prettyDOM(container)).toMatchInlineSnapshot();
+  });
 });

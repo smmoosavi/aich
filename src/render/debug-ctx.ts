@@ -44,23 +44,22 @@ export function _withIndent<T>(fn: () => T): T {
 export function debugContext() {
   if (rootCtx) {
     console.log('=================== Debug Render Context ===================');
-    _debugContext(rootCtx, 'ROOT');
+    _debugContext(rootCtx);
     console.log('============================================================');
   } else {
     console.log('No root render context available for debugging.');
   }
 }
 
-export function _debugContext(rctx: RenderContext, key: string | number) {
-  _log(`[${key}]`, getCtxDebugName(rctx), 'JSX:', rctx?.lastJsxNode);
+export function _debugContext(rctx: RenderContext) {
+  _log(`[${rctx.key}]`, getCtxDebugName(rctx), 'JSX:', rctx?.lastJsxNode);
   rctx.childContexts.byIndex?.forEach((childCtx, index) => {
     _withIndent(() => {
       if (!childCtx) {
         _log(`[${index}] .`);
         return;
       }
-      const childKey = rctx.childContexts.keyMap.get(childCtx);
-      _debugContext(childCtx, childKey ?? index);
+      _debugContext(childCtx);
     });
   });
 }

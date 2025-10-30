@@ -13,6 +13,7 @@ declare module '../root' {
 export type UnmountFn = () => void;
 
 export interface RenderContext {
+  key: string;
   renderer: AnyRenderer;
   parent: AnyTElement;
   lastJsxNode?: JSXChild;
@@ -41,16 +42,15 @@ export function withRenderContext<T>(context: RenderContext, fn: () => T): T {
 }
 
 export function getChildContext(
-  key: string | number,
+  key: string,
   parent?: AnyTElement,
 ): RenderContext {
   const ctx = getRenderContext();
   if (!ctx.childContexts.byKey.has(key)) {
     _log('++Creating new child context for key:', key);
     addCtxToChildContexts(
-      key,
       ctx.childContexts,
-      createCtx(ctx.renderer, parent ?? ctx.parent),
+      createCtx(key, ctx.renderer, parent ?? ctx.parent),
     );
   } else {
     _log('Reusing existing child context for key:', key);
@@ -59,10 +59,12 @@ export function getChildContext(
 }
 
 export function createCtx(
+  key: string,
   renderer: AnyRenderer,
   parent: AnyTElement,
 ): RenderContext {
   const ctx: RenderContext = {
+    key,
     renderer,
     parent,
     childContexts: createChildContexts(),
@@ -73,35 +75,30 @@ export function createCtx(
 
 // --- children ctx ---
 interface ChildContexts {
-  byKey: Map<string | number, RenderContext>;
+  byKey: Map<string, RenderContext>;
   byIndex: (RenderContext | null)[];
   indexMap: Map<RenderContext, number>;
-  keyMap: Map<RenderContext, string | number>;
 }
 
 export function createChildContexts(): ChildContexts {
   return {
-    byKey: new Map<string | number, RenderContext>(),
+    byKey: new Map<string, RenderContext>(),
     byIndex: [],
     indexMap: new Map<RenderContext, number>(),
-    keyMap: new Map<RenderContext, string | number>(),
   };
 }
 
 export function addCtxToChildContexts(
-  key: string | number,
   childContexts: ChildContexts,
   ctx: RenderContext,
 ): void {
-  childContexts.byKey.set(key, ctx);
+  childContexts.byKey.set(ctx.key, ctx);
   const index = childContexts.byIndex.length;
   childContexts.byIndex.push(ctx);
   childContexts.indexMap.set(ctx, index);
-  childContexts.keyMap.set(ctx, key);
 }
 
 export function removeCtxFromChildContexts(
-  key: string | number,
   childContexts: ChildContexts,
   ctx: RenderContext,
 ): void {
@@ -109,8 +106,7 @@ export function removeCtxFromChildContexts(
   if (index === undefined) {
     return;
   }
-  childContexts.byKey.delete(key);
-  childContexts.keyMap.delete(ctx);
+  childContexts.byKey.delete(ctx.key);
   childContexts.indexMap.delete(ctx);
   childContexts.byIndex[index] = null;
 }
