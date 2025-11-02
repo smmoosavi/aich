@@ -1,6 +1,6 @@
 {
   "name": "aich",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "minimal ui construction library for web applications",
   "type": "module",
   "license": "MIT",
