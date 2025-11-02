@@ -24,11 +24,14 @@
   },
   "scripts": {
     "format": "pnpx prettier --write .",
+    "format:check": "pnpx prettier --check .",
     "build": "tsdown",
     "dev": "tsdown --watch",
-    "test": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "typecheck": "tsc --noEmit"
+    "test": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "validate": "pnpm run format:check && pnpm run test && pnpm run typecheck",
+    "prepublishOnly": "pnpm run validate && pnpm build"
   },
   "devDependencies": {
     "@types/node": "^24.7.2",
