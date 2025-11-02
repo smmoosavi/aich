@@ -1,23 +1,5 @@
-# tsdown-starter
+# aicH
 
-A starter for creating a TypeScript package.
+The 8th letter of the alphabet, where Functions are respected.
 
-## Development
-
-- Install dependencies:
-
-```bash
-npm install
-```
-
-- Run the unit tests:
-
-```bash
-npm run test
-```
-
-- Build the library:
-
-```bash
-npm run build
-```
+To be completed...
