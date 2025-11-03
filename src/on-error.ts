@@ -1,16 +1,10 @@
-import { getCurrentEffect, type Effect } from './effect';
-import { getRoot } from './root';
+import { getCurrentEffect, getEffectContext, type Effect } from './effect';
 
 /** @internal */
-declare module './root' {
-  interface Root {
-    catches?: Catches;
+declare module './effect' {
+  interface EffectContext {
+    catch?: Catch;
   }
-}
-
-export interface Catches {
-  byEffect: WeakMap<Effect | CatchFn, Catch>;
-  byFn: WeakMap<CatchFn, Catch>;
 }
 
 export interface Catch {
@@ -36,16 +30,15 @@ export function onError(catchFn: CatchFn) {
 }
 
 export function addCatch(catchFn: CatchFn, effect: Effect) {
-  const catches = getCatches();
-  const lastCatch = catches.byEffect.get(effect);
+  const context = getEffectContext(effect);
+  const lastCatch = context.catch;
   const c = {
     catchFn,
     effect,
     onErrorEffect: effect,
     lastCatch,
   };
-  catches.byEffect.set(effect, c);
-  catches.byFn.set(catchFn, c);
+  context.catch = c;
   return c;
 }
 
@@ -55,8 +48,8 @@ export function addCatch(catchFn: CatchFn, effect: Effect) {
  * @param child
  */
 export function addChildCatch(parent: Effect, child: Effect | CatchFn) {
-  const catches = getCatches();
-  const parentCatch = catches.byEffect.get(parent);
+  const parentContext = getEffectContext(parent);
+  const parentCatch = parentContext.catch;
   if (parentCatch) {
     let lastCatch: Catch | undefined = undefined;
     if (parentCatch.onErrorEffect === parent) {
@@ -68,43 +61,32 @@ export function addChildCatch(parent: Effect, child: Effect | CatchFn) {
       onErrorEffect: parentCatch.onErrorEffect,
       lastCatch,
     };
-    catches.byEffect.set(child, c);
-    catches.byFn.set(c.catchFn, c);
+    const childContext = getEffectContext(child as Effect);
+    childContext.catch = c;
     return c;
   } else {
   }
 }
 
-export function getCatches(): Catches {
-  const root = getRoot();
-  if (!root.catches) {
-    root.catches = {
-      byEffect: new WeakMap(),
-      byFn: new WeakMap(),
-    };
-  }
-  return root.catches;
-}
-
 export function disposeEffectCatch(effect: Effect) {
-  const catches = getCatches();
-  const c = catches.byEffect.get(effect);
+  const context = getEffectContext(effect);
+  const c = context.catch;
   if (c && c.onErrorEffect === effect) {
-    catches.byEffect.delete(c.effect);
-    catches.byFn.delete(c.catchFn);
+    context.catch = undefined;
   }
 }
 
 export function catchError(e: any, effect?: Effect | CatchFn) {
   if (effect) {
-    const catches = getCatches();
-    let c = catches.byEffect.get(effect);
+    const context = getEffectContext(effect as Effect);
+    let c = context.catch;
     while (c) {
       try {
         c.catchFn(e);
         return;
       } catch (ne) {
-        c = catches.byEffect.get(c.catchFn);
+        const catchContext = getEffectContext(c.catchFn as any as Effect);
+        c = catchContext.catch;
         e = ne;
         // catchError(ne, c.catchFn);
       }
