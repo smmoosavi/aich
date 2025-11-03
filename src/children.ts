@@ -1,34 +1,28 @@
-import { disposeEffect, type Effect } from './effect';
-import { getRoot } from './root';
+import { disposeEffect, getEffectContext, type Effect } from './effect';
 
 /** @internal */
-declare module './root' {
-  interface Root {
-    effectChildren?: WeakMap<Effect, Set<Effect>>;
+declare module './effect' {
+  interface EffectContext {
+    children?: Set<Effect>;
   }
 }
 
-export function getEffectChildren(): WeakMap<Effect, Set<Effect>> {
-  const root = getRoot();
-  if (!root.effectChildren) {
-    root.effectChildren = new WeakMap();
+export function getEffectChildren(effect: Effect): Set<Effect> {
+  const context = getEffectContext(effect);
+  if (!context.children) {
+    context.children = new Set();
   }
-  return root.effectChildren;
+  return context.children;
 }
 
 export function addChildEffect(parent: Effect, child: Effect) {
-  const children = getEffectChildren();
-  let childSet = children.get(parent);
-  if (!childSet) {
-    childSet = new Set();
-    children.set(parent, childSet);
-  }
-  childSet.add(child);
+  const children = getEffectChildren(parent);
+  children.add(child);
 }
 
 export function disposeChildEffects(parent: Effect) {
-  const children = getEffectChildren();
-  const childSet = children.get(parent);
+  const context = getEffectContext(parent);
+  const childSet = context.children;
   if (childSet) {
     Array.from(childSet)
       .reverse()
@@ -37,7 +31,7 @@ export function disposeChildEffects(parent: Effect) {
         disposeEffect(child);
       });
     if (childSet.size === 0) {
-      children.delete(parent);
+      context.children = undefined;
     }
   }
 }

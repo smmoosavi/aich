@@ -5,15 +5,32 @@ import { dropEffect, enqueue } from './queue';
 import { getRoot } from './root';
 import { clearEffectSubs } from './sub';
 
+export type Effect = () => void;
+
+export interface EffectContext {
+  effect: Effect;
+}
+
 /** @internal */
 declare module './root' {
   interface Root {
     currentEffect?: Effect | null;
-    effectsByDispose?: WeakMap<() => void, Effect>;
+    effectContext?: WeakMap<Effect, EffectContext>;
   }
 }
 
-export type Effect = () => void;
+export function getEffectContext(effect: Effect): EffectContext {
+  const root = getRoot();
+  if (!root.effectContext) {
+    root.effectContext = new WeakMap();
+  }
+  let context = root.effectContext.get(effect);
+  if (!context) {
+    context = { effect };
+    root.effectContext.set(effect, context);
+  }
+  return context;
+}
 
 export function effect(fn: Effect) {
   const root = getRoot();
@@ -36,11 +53,6 @@ export function addEffectDispose(effect: Effect) {
   const dispose = () => {
     disposeEffect(effect);
   };
-  const root = getRoot();
-  if (!root.effectsByDispose) {
-    root.effectsByDispose = new WeakMap();
-  }
-  root.effectsByDispose.set(dispose, effect);
   return dispose;
 }
 
