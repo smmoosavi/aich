@@ -213,6 +213,24 @@ describe('effect with state', () => {
     assertQueueEmpty();
     expect(logs.take()).toEqual([]);
   });
+  test('update state and dispose effect', async () => {
+    const logs = createLogStore();
+    const count = state(0);
+    const dispose = effect(() => {
+      logs.push('effect ran with ' + count());
+    });
+    expect(logs.take()).toEqual([]);
+    await wait();
+    expect(logs.take()).toEqual(['effect ran with 0']);
+
+    count(1);
+    dispose();
+    // as expected, no effect runs after dispose and queued effects are cleared
+    expect(logs.take()).toEqual([]);
+    await wait();
+    assertQueueEmpty();
+    expect(logs.take()).toEqual([]);
+  });
   test('dispose nested effect, dispose outer will dispose all', async () => {
     const logs = createLogStore();
     const count1 = state(0);
