@@ -186,7 +186,7 @@ describe('effect with state', () => {
   test('dispose effect', async () => {
     const logs = createLogStore();
     const count = state(0);
-    const dispose = effect(() => {
+    const { dispose } = effect(() => {
       logs.push('effect ran with ' + count());
     });
     expect(logs.take()).toEqual([]);
@@ -216,7 +216,7 @@ describe('effect with state', () => {
   test('update state and dispose effect', async () => {
     const logs = createLogStore();
     const count = state(0);
-    const dispose = effect(() => {
+    const { dispose } = effect(() => {
       logs.push('effect ran with ' + count());
     });
     expect(logs.take()).toEqual([]);
@@ -235,7 +235,7 @@ describe('effect with state', () => {
     const logs = createLogStore();
     const count1 = state(0);
     const count2 = state(10);
-    const disposeOuter = effect(function outer() {
+    const { dispose: disposeOuter } = effect(function outer() {
       const c1 = count1();
       logs.push('outer effect ran with ' + c1);
       effect(function inner() {
@@ -283,9 +283,10 @@ describe('effect with state', () => {
     effect(function outer() {
       const c1 = count1();
       logs.push('outer effect ran with ' + c1);
-      disposeInner = effect(function inner() {
+      const { dispose } = effect(function inner() {
         logs.push('inner effect ran with ' + count2() + ' in outer ' + c1);
       });
+      disposeInner = dispose;
     });
 
     expect(logs.take()).toEqual([]);
@@ -330,7 +331,7 @@ describe('effect with state', () => {
   test('dispose deeply nested effects', async () => {
     const logs = createLogStore();
     const count = state(0);
-    const dispose = effect(function level1() {
+    const { dispose } = effect(function level1() {
       logs.push('effect level 1 ran');
       effect(function level2() {
         logs.push('effect level 2 ran');
@@ -362,7 +363,7 @@ describe('effect with state', () => {
   test('dispose effect multiple times', async () => {
     const logs = createLogStore();
     const count = state(0);
-    const dispose = effect(() => {
+    const { dispose } = effect(() => {
       logs.push('effect ran with ' + count());
     });
     expect(logs.take()).toEqual([]);
@@ -419,7 +420,7 @@ describe('effect with state', () => {
     // this is a bad practice, just for testing edge case
     const logs = createLogStore();
     const count = state(0);
-    const dispose = effect(() => {
+    const { dispose } = effect(() => {
       const c = count();
       logs.push(`effect ran with ${c}`);
       if (c < 3) {

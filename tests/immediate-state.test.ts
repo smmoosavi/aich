@@ -235,7 +235,7 @@ describe('immediate with state', () => {
   test('dispose immediate', async () => {
     const logs = createLogStore();
     const count = state(0);
-    const dispose = immediate(() => {
+    const { dispose } = immediate(() => {
       logs.push('immediate ran with ' + count());
     });
     assertQueueEmpty();
@@ -263,7 +263,7 @@ describe('immediate with state', () => {
     const logs = createLogStore();
     const count1 = state(0);
     const count2 = state(10);
-    const disposeOuter = immediate(() => {
+    const { dispose: disposeOuter } = immediate(() => {
       const c1 = count1();
       logs.push(`outer immediate ran with ${c1}`);
       immediate(() => {
@@ -305,9 +305,11 @@ describe('immediate with state', () => {
     immediate(() => {
       const c1 = count1();
       logs.push(`outer immediate ran with ${c1}`);
-      disposeInner = immediate(() => {
+      const { dispose } = immediate(() => {
         logs.push(`inner immediate ran with ${count2()} in outer ${c1}`);
       });
+      disposeInner = dispose;
+
       logs.push(`outer immediate end with ${c1}`);
     });
     assertQueueEmpty();
