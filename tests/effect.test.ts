@@ -76,4 +76,17 @@ describe('effect', () => {
       'effect level 3 ran',
     ]);
   });
+
+  test('effect result', async () => {
+    const handle = effect(() => {
+      return 'result';
+    });
+    expectTypeOf(handle.result.current).toEqualTypeOf<string | undefined>();
+    expect(handle.result.current).toBeUndefined();
+    await wait();
+    expect(handle.result.current).toBe('result');
+    handle.dispose();
+    // After disposal, the result should still be accessible
+    expect(handle.result.current).toBe('result');
+  });
 });

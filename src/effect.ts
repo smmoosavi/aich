@@ -5,14 +5,16 @@ import { dropEffect, enqueue } from './queue';
 import { getRoot } from './root';
 import { clearEffectSubs } from './sub';
 
-export type Effect = () => void;
+export type Effect<R = void> = () => R;
 export type Dispose = () => void;
-export interface EffectHandle {
+export interface EffectHandle<R> {
   dispose: Dispose;
+  result: { current: R | undefined };
 }
 
-export interface EffectContext {
-  effect: Effect;
+export interface EffectContext<R = unknown> {
+  effect: Effect<R>;
+  result: { current: R | undefined };
 }
 
 /** @internal */
@@ -23,36 +25,38 @@ declare module './root' {
   }
 }
 
-export function getEffectContext(effect: Effect): EffectContext {
+export function getEffectContext<R>(effect: Effect<R>): EffectContext<R> {
   const root = getRoot();
   if (!root.effectContext) {
     root.effectContext = new WeakMap();
   }
   let context = root.effectContext.get(effect);
   if (!context) {
-    context = { effect };
+    context = { effect, result: { current: undefined } };
     root.effectContext.set(effect, context);
   }
-  return context;
+  return context as EffectContext<R>;
 }
 
-export function effect(fn: Effect): EffectHandle {
+export function effect<R>(fn: Effect<R>): EffectHandle<R> {
   const root = getRoot();
   enqueue(fn);
   root.currentEffect && addChildEffect(root.currentEffect, fn);
   root.currentEffect && addChildCatch(root.currentEffect, fn);
   const dispose = addEffectDispose(fn);
-  return { dispose };
+  const context = getEffectContext(fn);
+  return { dispose, result: context.result };
 }
 
-export function immediate(fn: Effect): EffectHandle {
+export function immediate<R>(fn: Effect<R>): EffectHandle<R> {
   const root = getRoot();
   enqueue(fn);
   root.currentEffect && addChildEffect(root.currentEffect, fn);
   root.currentEffect && addChildCatch(root.currentEffect, fn);
   runEffect(fn);
   const dispose = addEffectDispose(fn);
-  return { dispose };
+  const context = getEffectContext(fn);
+  return { dispose, result: context.result };
 }
 
 export function addEffectDispose(effect: Effect): Dispose {
@@ -74,10 +78,11 @@ export function getCurrentEffect(): Effect | null {
   return getRoot().currentEffect ?? null;
 }
 
-export function runEffect(effect: Effect) {
+export function runEffect<R>(effect: Effect<R>) {
   withEffect(effect, () => {
     disposeEffect(effect);
-    effect();
+    const context = getEffectContext(effect);
+    context.result.current = effect();
   });
 }
 
