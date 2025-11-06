@@ -346,4 +346,26 @@ describe('immediate with state', () => {
       'outer immediate end with 2',
     ]);
   });
+  test('immediate result', async () => {
+    const logs = createLogStore();
+    const count = state(0);
+    // handle is returned after immediate is called, so we should define optional variable before hand if we want to use it inside the immediate
+    // exact type of the result can't be inferred directly
+    let handle: ReturnType<typeof immediate<number>> | undefined;
+    handle = immediate(() => {
+      const c = count();
+      const r = handle?.result.current;
+      logs.push(`immediate ran with ${c} and last result ${r}`);
+      return 10;
+    });
+    expect(handle.result.current).toBe(10);
+    expect(logs.take()).toEqual([
+      'immediate ran with 0 and last result undefined',
+    ]);
+
+    count(1);
+    expect(logs.take()).toEqual([]);
+    await wait();
+    expect(logs.take()).toEqual(['immediate ran with 1 and last result 10']);
+  });
 });

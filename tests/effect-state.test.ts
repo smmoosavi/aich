@@ -454,4 +454,24 @@ describe('effect with state', () => {
     assertQueueEmpty();
     expect(logs.take()).toEqual([]);
   });
+  test('effect result', async () => {
+    const logs = createLogStore();
+    const count = state(0);
+    const handle = effect(() => {
+      const c = count();
+      const r = handle.result.current;
+      logs.push(`effect ran with ${c} and last result ${r}`);
+      return 10;
+    });
+    expect(handle.result.current).toBeUndefined();
+    await wait();
+    expect(handle.result.current).toBe(10);
+    expect(logs.take()).toEqual([
+      'effect ran with 0 and last result undefined',
+    ]);
+
+    count(1);
+    await wait();
+    expect(logs.take()).toEqual(['effect ran with 1 and last result 10']);
+  });
 });

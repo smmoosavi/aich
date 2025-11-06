@@ -88,4 +88,15 @@ describe('immediate', () => {
     ]);
     assertQueueEmpty();
   });
+
+  test('immediate result', () => {
+    const handle = immediate(() => {
+      return 'immediate result';
+    });
+    expectTypeOf(handle.result.current).toEqualTypeOf<string | undefined>();
+    expect(handle.result.current).toBe('immediate result');
+    handle.dispose();
+    // After disposal, the result should still be accessible
+    expect(handle.result.current).toBe('immediate result');
+  });
 });
