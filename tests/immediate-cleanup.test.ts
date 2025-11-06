@@ -7,7 +7,7 @@ import { wait } from './wait';
 describe('cleanup', () => {
   test('run cleanup', async () => {
     const logs = createLogStore();
-    const dispose = immediate(() => {
+    const { dispose } = immediate(() => {
       logs.push('immediate ran');
       cleanup(() => {
         logs.push('cleanup ran');
@@ -20,7 +20,7 @@ describe('cleanup', () => {
   });
   test('multiple cleanups', async () => {
     const logs = createLogStore();
-    const dispose = immediate(() => {
+    const { dispose } = immediate(() => {
       logs.push('immediate ran');
       cleanup(() => {
         logs.push('cleanup 1 ran');
@@ -35,7 +35,7 @@ describe('cleanup', () => {
   });
   test('nested immediate cleanups', async () => {
     const logs = createLogStore();
-    const dispose = immediate(() => {
+    const { dispose } = immediate(() => {
       logs.push('outer immediate ran');
       immediate(() => {
         logs.push('inner immediate ran');
@@ -54,7 +54,7 @@ describe('cleanup', () => {
   });
   test('nested multiple cleanups', async () => {
     const logs = createLogStore();
-    const dispose = immediate(() => {
+    const { dispose } = immediate(() => {
       logs.push('outer immediate ran');
       immediate(() => {
         logs.push('inner immediate 1 ran');
@@ -101,7 +101,7 @@ describe('cleanup', () => {
   test('cleanup with state', async () => {
     const logs = createLogStore();
     const count = state(0);
-    const dispose = immediate(() => {
+    const { dispose } = immediate(() => {
       const c = count();
       logs.push(`immediate ran with ${c}`);
       cleanup(() => {
@@ -125,7 +125,7 @@ describe('cleanup', () => {
     const count1 = state(10);
     const count2 = state(1);
 
-    const dispose = immediate(() => {
+    const { dispose } = immediate(() => {
       const c1 = count1();
       logs.push(`outer immediate ran with ${c1}`);
       immediate(() => {

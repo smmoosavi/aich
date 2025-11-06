@@ -74,7 +74,7 @@ describe('onError', () => {
   });
   test('catch error in cleanup', async () => {
     const logs = createLogStore();
-    const dispose = effect(() => {
+    const { dispose } = effect(() => {
       onError((e) => {
         logs.push(`caught error: ${e.message}`);
       });
@@ -345,9 +345,9 @@ describe('onError', () => {
     assertQueueEmpty();
   });
 
-  test('dispatch effect with on error', async () => {
+  test('dispose effect with on error', async () => {
     const logs = createLogStore();
-    const dispatch = effect(() => {
+    const { dispose } = effect(() => {
       onError((e) => {
         logs.push(`caught error: ${e.message}`);
       });
@@ -360,7 +360,7 @@ describe('onError', () => {
     expect(logs.take()).toEqual([]);
     await wait();
     expect(logs.take()).toEqual(['effect ran', 'effect end']);
-    dispatch();
+    dispose();
     expect(logs.take()).toEqual(['cleanup ran']);
     assertQueueEmpty();
   });

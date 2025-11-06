@@ -71,7 +71,7 @@ describe('on error with state', () => {
   test('error in cleanup by dispose', async () => {
     const logs = createLogStore();
     const count = state(1);
-    const dispose = effect(() => {
+    const { dispose } = effect(() => {
       onError((e) => {
         logs.push(`caught error ${e.message}`);
       });

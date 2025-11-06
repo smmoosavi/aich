@@ -22,7 +22,7 @@ describe('error', () => {
   });
   test('error in cleanup', async () => {
     const logs = createLogStore();
-    const dispose = effect(() => {
+    const { dispose } = effect(() => {
       logs.push('effect ran');
       cleanup(() => {
         logs.push('cleanup ran');
@@ -120,7 +120,7 @@ describe('error', () => {
 
   test('error in sibling cleanup', async () => {
     const logs = createLogStore();
-    const dispose = effect(() => {
+    const { dispose } = effect(() => {
       logs.push('effect ran');
       cleanup(() => {
         logs.push('sibling cleanup 1 ran');

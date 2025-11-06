@@ -7,7 +7,7 @@ import { wait } from './wait';
 describe('cleanup', () => {
   test('run cleanup', async () => {
     const logs = createLogStore();
-    const dispose = effect(() => {
+    const { dispose } = effect(() => {
       logs.push('effect ran');
       cleanup(() => {
         logs.push('cleanup ran');
@@ -22,7 +22,7 @@ describe('cleanup', () => {
   });
   test('multiple cleanups', async () => {
     const logs = createLogStore();
-    const dispose = effect(() => {
+    const { dispose } = effect(() => {
       logs.push('effect ran');
       cleanup(() => {
         logs.push('cleanup 1 ran');
@@ -40,7 +40,7 @@ describe('cleanup', () => {
   });
   test('nested effect cleanups', async () => {
     const logs = createLogStore();
-    const dispose = effect(() => {
+    const { dispose } = effect(() => {
       logs.push('outer effect ran');
       effect(() => {
         logs.push('inner effect ran');
@@ -61,7 +61,7 @@ describe('cleanup', () => {
   });
   test('nested multiple cleanups', async () => {
     const logs = createLogStore();
-    const dispose = effect(() => {
+    const { dispose } = effect(() => {
       logs.push('outer effect ran');
       effect(() => {
         logs.push('inner effect 1 ran');
@@ -110,7 +110,7 @@ describe('cleanup', () => {
   test('cleanup with state', async () => {
     const logs = createLogStore();
     const count = state(0);
-    const dispose = effect(() => {
+    const { dispose } = effect(() => {
       const c = count();
       logs.push(`effect ran with ${c}`);
       cleanup(() => {
@@ -136,7 +136,7 @@ describe('cleanup', () => {
     const count1 = state(10);
     const count2 = state(1);
 
-    const dispose = effect(() => {
+    const { dispose } = effect(() => {
       const c1 = count1();
       logs.push(`outer effect ran with ${c1}`);
       effect(() => {

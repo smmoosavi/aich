@@ -6,6 +6,10 @@ import { getRoot } from './root';
 import { clearEffectSubs } from './sub';
 
 export type Effect = () => void;
+export type Dispose = () => void;
+export interface EffectHandle {
+  dispose: Dispose;
+}
 
 export interface EffectContext {
   effect: Effect;
@@ -32,24 +36,26 @@ export function getEffectContext(effect: Effect): EffectContext {
   return context;
 }
 
-export function effect(fn: Effect) {
+export function effect(fn: Effect): EffectHandle {
   const root = getRoot();
   enqueue(fn);
   root.currentEffect && addChildEffect(root.currentEffect, fn);
   root.currentEffect && addChildCatch(root.currentEffect, fn);
-  return addEffectDispose(fn);
+  const dispose = addEffectDispose(fn);
+  return { dispose };
 }
 
-export function immediate(fn: Effect) {
+export function immediate(fn: Effect): EffectHandle {
   const root = getRoot();
   enqueue(fn);
   root.currentEffect && addChildEffect(root.currentEffect, fn);
   root.currentEffect && addChildCatch(root.currentEffect, fn);
   runEffect(fn);
-  return addEffectDispose(fn);
+  const dispose = addEffectDispose(fn);
+  return { dispose };
 }
 
-export function addEffectDispose(effect: Effect) {
+export function addEffectDispose(effect: Effect): Dispose {
   const dispose = () => {
     disposeEffect(effect);
   };
