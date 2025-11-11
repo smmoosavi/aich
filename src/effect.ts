@@ -13,9 +13,9 @@ import { getRoot } from './root';
 import { clearEffectSubs } from './sub';
 
 export type Effect<R = void> = () => R;
-export type Dispose = () => void;
+export type DisposeFn = () => void;
 export interface EffectHandle<R> {
-  dispose: Dispose;
+  dispose: DisposeFn;
   result: { current: R | undefined };
 }
 
@@ -66,7 +66,7 @@ export function effect<R>(fn: Effect<R>): EffectHandle<R> {
   enqueue(fn);
   root.currentEffect && addChildEffect(root.currentEffect, fn);
   root.currentEffect && addChildCatch(root.currentEffect, fn);
-  const dispose = addEffectDispose(fn);
+  const dispose = createDisposeFn(fn);
   return { dispose, result: context.result };
 }
 
@@ -78,11 +78,11 @@ export function immediate<R>(fn: Effect<R>): EffectHandle<R> {
   root.currentEffect && addChildEffect(root.currentEffect, fn);
   root.currentEffect && addChildCatch(root.currentEffect, fn);
   runEffect(fn);
-  const dispose = addEffectDispose(fn);
+  const dispose = createDisposeFn(fn);
   return { dispose, result: context.result };
 }
 
-export function addEffectDispose(effect: Effect): Dispose {
+export function createDisposeFn(effect: Effect): DisposeFn {
   const dispose = () => {
     disposeEffect(effect);
   };
