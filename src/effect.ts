@@ -27,7 +27,9 @@ declare module './root' {
   }
 }
 
-export function getEffectContext<R>(effect: Effect<R>): EffectContext<R> {
+export function getOrCreateEffectContext<R>(
+  effect: Effect<R>,
+): EffectContext<R> {
   const root = getRoot();
   if (!root.effectContext) {
     root.effectContext = new WeakMap();
@@ -40,24 +42,36 @@ export function getEffectContext<R>(effect: Effect<R>): EffectContext<R> {
   return context as EffectContext<R>;
 }
 
+export function getEffectContext<R>(effect: Effect<R>): EffectContext<R> {
+  const root = getRoot();
+  let context = root.effectContext?.get(effect);
+  if (!context) {
+    throw new Error('Effect context not found');
+  }
+
+  return context as EffectContext<R>;
+}
+
 export function effect<R>(fn: Effect<R>): EffectHandle<R> {
   const root = getRoot();
+  const context = getOrCreateEffectContext(fn);
+
   enqueue(fn);
   root.currentEffect && addChildEffect(root.currentEffect, fn);
   root.currentEffect && addChildCatch(root.currentEffect, fn);
   const dispose = addEffectDispose(fn);
-  const context = getEffectContext(fn);
   return { dispose, result: context.result };
 }
 
 export function immediate<R>(fn: Effect<R>): EffectHandle<R> {
   const root = getRoot();
+  const context = getOrCreateEffectContext(fn);
+
   enqueue(fn);
   root.currentEffect && addChildEffect(root.currentEffect, fn);
   root.currentEffect && addChildCatch(root.currentEffect, fn);
   runEffect(fn);
   const dispose = addEffectDispose(fn);
-  const context = getEffectContext(fn);
   return { dispose, result: context.result };
 }
 

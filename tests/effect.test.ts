@@ -3,6 +3,7 @@ import { effect } from '../src';
 import { assertQueueEmpty } from '../src/queue';
 import { createLogStore } from './log';
 import { wait } from './wait';
+import { getEffectContext } from '../src/effect';
 
 describe('effect', () => {
   test('run effect', async () => {
@@ -88,5 +89,11 @@ describe('effect', () => {
     handle.dispose();
     // After disposal, the result should still be accessible
     expect(handle.result.current).toBe('result');
+  });
+
+  test('getEffectContext error', () => {
+    expect(() => {
+      getEffectContext(() => {});
+    }).toThrowErrorMatchingInlineSnapshot(`[Error: Effect context not found]`);
   });
 });

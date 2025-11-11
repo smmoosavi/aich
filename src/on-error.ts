@@ -1,4 +1,9 @@
-import { getCurrentEffect, getEffectContext, type Effect } from './effect';
+import {
+  getCurrentEffect,
+  getEffectContext,
+  getOrCreateEffectContext,
+  type Effect,
+} from './effect';
 
 /** @internal */
 declare module './effect' {
@@ -21,6 +26,7 @@ export interface CatchFn {
 }
 
 export function onError(catchFn: CatchFn) {
+  getOrCreateEffectContext(catchFn as any as Effect);
   const effect = getCurrentEffect();
   if (!effect) {
     throw new Error('onError() must be called within an executing effect');
