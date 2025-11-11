@@ -4,6 +4,7 @@ import {
   getOrCreateEffectContext,
   type Effect,
 } from './effect';
+import { pinKey } from './pin-key';
 
 /** @internal */
 declare module './effect' {
@@ -26,7 +27,7 @@ export interface CatchFn {
 }
 
 export function onError(catchFn: CatchFn) {
-  getOrCreateEffectContext(catchFn);
+  getOrCreateEffectContext(catchFn, pinKey('ON_ERROR'));
   const effect = getCurrentEffect();
   if (!effect) {
     throw new Error('onError() must be called within an executing effect');

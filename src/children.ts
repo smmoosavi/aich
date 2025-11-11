@@ -1,4 +1,5 @@
 import { disposeEffect, getEffectContext, type Effect } from './effect';
+import { isEffectPinned } from './pin-effect';
 
 /** @internal */
 declare module './effect' {
@@ -20,15 +21,20 @@ export function addChildEffect(parent: Effect, child: Effect) {
   children.add(child);
 }
 
-export function disposeChildEffects(parent: Effect) {
+export function disposeChildEffects(parent: Effect, unmount: boolean) {
   const context = getEffectContext(parent);
   const childSet = context.children;
   if (childSet) {
     Array.from(childSet)
       .reverse()
       .forEach((child) => {
+        const childContext = getEffectContext(child);
+        const childKey = childContext.key;
+        if (!unmount && isEffectPinned(parent, childKey)) {
+          return;
+        }
         childSet.delete(child);
-        disposeEffect(child);
+        disposeEffect(child, true);
       });
     if (childSet.size === 0) {
       context.children = undefined;

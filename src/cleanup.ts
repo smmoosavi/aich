@@ -7,6 +7,7 @@ import {
 } from './effect';
 import { forEach } from './iter';
 import { addChildCatch, catchError } from './on-error';
+import { pinKey } from './pin-key';
 
 /** @internal */
 declare module './effect' {
@@ -20,7 +21,7 @@ export function cleanup(effect: Effect): void {
   if (!parent) {
     throw new Error('cleanup() must be called within an executing effect');
   }
-  getOrCreateEffectContext(effect);
+  getOrCreateEffectContext(effect, pinKey('CLEANUP'));
   addCleanupEffect(parent, effect);
 }
 
