@@ -63,28 +63,31 @@ describe('pin effect', () => {
       'parent cleaned up 1',
     ]);
   });
-  test('conditional pinning an effect cause dispose', async () => {
+  test.only('conditional pinning an effect cause dispose', async () => {
     const logs = createLogStore();
     const count = state(0);
     const flag = state(true);
 
     // Create parent effect
-    const { dispose } = effect(() => {
+    const { dispose } = effect(function outter() {
       const c = count();
-
+      console.log('---- ran ----', c, flag());
       logs.push(`parent ran ${c}`);
 
       // Create conditional child effect with key
       if (flag()) {
-        effect(() => {
+        console.log('---- creating child effect ----', c);
+        effect(function inner() {
           logs.push(`child effect ran ${c}`);
-          cleanup(() => {
+          cleanup(function innerCleanup() {
             logs.push(`child effect cleaned up ${c}`);
           });
         }).pin();
       }
 
-      cleanup(() => {
+      console.log('---- registering parent cleanup ----', c);
+
+      cleanup(function outterCleanup() {
         logs.push(`parent cleaned up ${c}`);
       });
     });
@@ -92,30 +95,36 @@ describe('pin effect', () => {
     flush();
     expect(logs.take()).toEqual(['parent ran 0', 'child effect ran 0']);
 
+    console.log('\n\n\n---- setting count to 1 ----');
     count(1);
     flush();
     expect(logs.take()).toEqual(['parent cleaned up 0', 'parent ran 1']);
 
+    console.log('\n\n\n---- setting flag to false ----');
     flag(false);
     flush();
-    expect(logs.take()).toEqual([
+    expect(logs.take()).noBail.toEqual([
       'parent cleaned up 1',
       'parent ran 1',
       'child effect cleaned up 0',
     ]);
 
+    console.log('\n\n\n---- setting count to 2 ----');
+
     count(2);
     flush();
-    expect(logs.take()).toEqual(['parent cleaned up 1', 'parent ran 2']);
+    expect(logs.take()).noBail.toEqual(['parent cleaned up 1', 'parent ran 2']);
 
+    console.log('\n\n\n---- setting flag to true ----');
     flag(true);
     flush();
-    expect(logs.take()).toEqual([
+    expect(logs.take()).noBail.toEqual([
       'parent cleaned up 2',
       'parent ran 2',
       'child effect ran 2',
     ]);
 
+    console.log('\n\n\n---- setting count to 3 ----');
     count(3);
     flush();
     expect(logs.take()).toEqual(['parent cleaned up 2', 'parent ran 3']);

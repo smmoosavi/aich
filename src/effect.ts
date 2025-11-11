@@ -12,6 +12,7 @@ import {
   isEffectPinned,
   type PinEffectFn,
 } from './pin-effect';
+import { getName } from './effect-name';
 
 export type Effect<R = void> = () => R;
 export type DisposeFn = () => void;
@@ -65,6 +66,7 @@ export function effect<R>(
   fn: Effect<R>,
   key?: string | number,
 ): EffectHandle<R> {
+  getName(effect, 'EF')
   const root = getRoot();
   const parentEffect = root.currentEffect ?? null;
   const effectKey = pinKey('__AICH_EFFECT__', key);
@@ -86,6 +88,7 @@ export function immediate<R>(
   fn: Effect<R>,
   key?: string | number,
 ): EffectHandle<R> {
+  getName(effect, 'IM')
   const root = getRoot();
   const parentEffect = root.currentEffect ?? null;
   const effectKey = pinKey('__AICH_EFFECT__', key);
@@ -112,6 +115,7 @@ export function createDisposeFn(effect: Effect): DisposeFn {
 }
 
 export function disposeEffect(effect: Effect, unmount: boolean) {
+  console.log('disposeEffect', getName(effect), unmount);
   dropEffect(effect);
   disposeChildEffects(effect, unmount);
   runCleanups(effect);

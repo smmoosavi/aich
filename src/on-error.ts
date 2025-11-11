@@ -4,6 +4,7 @@ import {
   getOrCreateEffectContext,
   type Effect,
 } from './effect';
+import { getName } from './effect-name';
 import { pinKey } from './pin-key';
 
 /** @internal */
@@ -27,6 +28,7 @@ export interface CatchFn {
 }
 
 export function onError(catchFn: CatchFn) {
+  getName(catchFn as any as Effect, 'CT')
   getOrCreateEffectContext(
     catchFn as any as Effect,
     pinKey('__AICH_ON_ERROR__'),

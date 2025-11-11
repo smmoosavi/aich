@@ -5,6 +5,7 @@ import {
   withEffect,
   type Effect,
 } from './effect';
+import { getName } from './effect-name';
 import { forEach } from './iter';
 import { addChildCatch, catchError } from './on-error';
 
@@ -16,6 +17,7 @@ declare module './effect' {
 }
 
 export function cleanup(effect: Effect): void {
+  getName(effect, 'CL');
   const parent = getCurrentEffect();
   if (!parent) {
     throw new Error('cleanup() must be called within an executing effect');
@@ -36,12 +38,21 @@ export function addCleanupEffect(parent: Effect, cleanup: Effect) {
   addChildCatch(parent, cleanup);
   const cleanups = getCleanups(parent);
   cleanups.add(cleanup);
+  console.log(
+    '++++ addCleanupEffect',
+    getName(parent),
+    'cleanup:',
+    getName(cleanup),
+    'total:',
+    cleanups.size,
+  );
 }
 
 export function runCleanups(effect: Effect) {
   withEffect(undefined, () => {
     const context = getEffectContext(effect);
     const effectCleanups = context.cleanups;
+    console.log('....runCleanups', getName(effect), effectCleanups);
     try {
       if (effectCleanups) {
         forEach(Array.from(effectCleanups).reverse(), (cleanup) => {
@@ -54,6 +65,7 @@ export function runCleanups(effect: Effect) {
         });
       }
     } finally {
+      console.log('---- clearing cleanups for', getName(effect));
       context.cleanups = undefined;
     }
   });

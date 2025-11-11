@@ -1,9 +1,12 @@
 import {
   disposeEffect,
   getEffectContext,
+  withEffect,
   type Effect,
   type EffectHandle,
 } from './effect';
+import { removeChildEffect } from './children';
+import { getName } from './effect-name';
 
 export type PinEffectFn<R = void> = () => Omit<EffectHandle<R>, 'pin'>;
 
@@ -32,6 +35,7 @@ export function pinEffect<R>(
   parent: Effect | null,
   key: string,
 ): void {
+  console.log('pinEffect', key);
   if (!parent) {
     return;
   }
@@ -39,11 +43,9 @@ export function pinEffect<R>(
   if (!parentContext.pinnedEffects) {
     parentContext.pinnedEffects = new Map();
   }
+  parentContext.pinnedEffects.set(key, fn);
   if (!parentContext.usedPinnedEffects) {
     parentContext.usedPinnedEffects = new Set();
-  }
-  if (!parentContext.pinnedEffects.has(key)) {
-    parentContext.pinnedEffects.set(key, fn);
   }
   parentContext.usedPinnedEffects.add(key);
 }
@@ -57,13 +59,18 @@ export function isEffectPinned(parent: Effect | null, key: string) {
 }
 
 export function disposeUnusedPinnedEffects(effect: Effect) {
+  console.log('disposeUnusedPinnedEffects', getName(effect));
   const context = getEffectContext(effect);
   const pinnedEffect = context.pinnedEffects;
   const usedPinnedEffect = context.usedPinnedEffects ?? new Set();
-  if (pinnedEffect) {
+  console.log('  pinnedEffect', pinnedEffect);
+  console.log('  usedPinnedEffect', usedPinnedEffect);
+  if (pinnedEffect && usedPinnedEffect) {
     for (const [key, child] of pinnedEffect) {
       if (!usedPinnedEffect.has(key)) {
+        console.log('    disposing unused pinned effect', key, getName(child));
         pinnedEffect.delete(key);
+        removeChildEffect(effect, child);
         disposeEffect(child, true);
       }
     }
