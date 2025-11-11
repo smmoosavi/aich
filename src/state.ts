@@ -1,3 +1,5 @@
+import { pin } from './pin';
+import { pinKey } from './pin-key';
 import { notify, register } from './sub';
 
 export interface State<T> {
@@ -5,7 +7,7 @@ export interface State<T> {
   (value: T): void;
 }
 
-export function state<T>(initial: T): State<T> {
+export function _state<T>(initial: T): State<T> {
   let value = initial;
   const s = function (newValue?: T): T | void {
     if (arguments.length === 0) {
@@ -18,4 +20,8 @@ export function state<T>(initial: T): State<T> {
     }
   } as State<T>;
   return s;
+}
+
+export function state<T>(initial: T, key?: string | number): State<T> {
+  return pin(() => _state(initial), pinKey('STATE', key));
 }
