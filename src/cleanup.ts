@@ -1,6 +1,7 @@
 import {
   getCurrentEffect,
   getEffectContext,
+  getOrCreateEffectContext,
   withEffect,
   type Effect,
 } from './effect';
@@ -19,6 +20,7 @@ export function cleanup(effect: Effect): void {
   if (!parent) {
     throw new Error('cleanup() must be called within an executing effect');
   }
+  getOrCreateEffectContext(effect);
   addCleanupEffect(parent, effect);
 }
 
