@@ -3,6 +3,7 @@ import { effect, state } from '../src';
 import { assertQueueEmpty } from '../src/queue';
 import { createLogStore } from './log';
 import { wait } from './wait';
+import type { State } from '../src/state';
 
 describe('effect with state', () => {
   test('get state', async () => {
@@ -473,5 +474,127 @@ describe('effect with state', () => {
     count(1);
     await wait();
     expect(logs.take()).toEqual(['effect ran with 1 and last result 10']);
+  });
+  it('should keep state in effect', async () => {
+    const logs = createLogStore();
+    const outer = state(0);
+    // let inner: State<number> | undefined = undefined;
+    const { result } = effect(() => {
+      const o = outer();
+      logs.push(`outer effect ran with ${o}`);
+      const inner = state(10);
+
+      effect(() => {
+        logs.push(`inner effect ran with ${inner!()} in outer ${o}`);
+      });
+      return inner;
+    });
+
+    await wait();
+    expect(logs.take()).toEqual([
+      'outer effect ran with 0',
+      'inner effect ran with 10 in outer 0',
+    ]);
+    result.current!(20);
+    await wait();
+    expect(logs.take()).toEqual(['inner effect ran with 20 in outer 0']);
+
+    outer(1);
+    await wait();
+    expect(logs.take()).toEqual([
+      'outer effect ran with 1',
+      'inner effect ran with 20 in outer 1',
+    ]);
+  });
+
+  it('should keep state in effect with key', async () => {
+    const logs = createLogStore();
+    const items = state(['a', 'b', 5]);
+    const count = state(0);
+
+    const { result } = effect(() => {
+      const before = state(0);
+      const counts = items().map(
+        (item) => [item, state(0, item)] as [string, State<number>],
+      );
+      const after = state(0);
+      logs.push(`count ${count()}`);
+
+      counts.forEach(([item, count]) => {
+        effect(() => {
+          logs.push(`count for ${item} is ${count()}`);
+        });
+      });
+
+      effect(() => {
+        logs.push(`before/after effect ran with ${before()}/${after()}`);
+      });
+
+      return { before, counts, after };
+    });
+
+    expect(logs.take()).toEqual([]);
+
+    await wait();
+    expect(logs.take()).toEqual([
+      'count 0',
+      'count for a is 0',
+      'count for b is 0',
+      'count for 5 is 0',
+      'before/after effect ran with 0/0',
+    ]);
+
+    const before = result.current?.before!;
+    const after = result.current?.after!;
+    const [, countA] = result.current?.counts[0]!;
+    const [, countB] = result.current?.counts[1]!;
+
+    before(1);
+    await wait();
+    expect(logs.take()).toEqual(['before/after effect ran with 1/0']);
+
+    countA(2);
+    await wait();
+    expect(logs.take()).toEqual(['count for a is 2']);
+
+    countB(3);
+    await wait();
+    expect(logs.take()).toEqual(['count for b is 3']);
+
+    after(4);
+    await wait();
+    expect(logs.take()).toEqual(['before/after effect ran with 1/4']);
+
+    count(5);
+    await wait();
+    expect(logs.take()).toEqual([
+      'count 5',
+      'count for a is 2',
+      'count for b is 3',
+      'count for 5 is 0',
+      'before/after effect ran with 1/4',
+    ]);
+
+    items(['c', 'a']);
+    await wait();
+    expect(logs.take()).toEqual([
+      'count 5',
+      'count for c is 0',
+      'count for a is 2',
+      'before/after effect ran with 1/4',
+    ]);
+
+    items(['c', 'b']);
+    await wait();
+    expect(logs.take()).toEqual([
+      'count 5',
+      'count for c is 0',
+      'count for b is 0',
+      'before/after effect ran with 1/4',
+    ]);
+
+    countA(6);
+    await wait();
+    expect(logs.take()).toEqual([]);
   });
 });
