@@ -1,6 +1,8 @@
 import { addChildEffect, disposeChildEffects } from './children';
 import { runCleanups } from './cleanup';
 import { addChildCatch, catchError, disposeEffectCatch } from './on-error';
+import { cleanupUnusedPins } from './pin';
+import { resetPinKey } from './pin-key';
 import { dropEffect, enqueue } from './queue';
 import { getRoot } from './root';
 import { clearEffectSubs } from './sub';
@@ -71,6 +73,8 @@ export function disposeEffect(effect: Effect) {
   disposeChildEffects(effect);
   runCleanups(effect);
   clearEffectSubs(effect);
+  cleanupUnusedPins(effect);
+  resetPinKey(effect);
   disposeEffectCatch(effect);
 }
 
