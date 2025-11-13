@@ -368,4 +368,33 @@ describe('immediate with state', () => {
     await wait();
     expect(logs.take()).toEqual(['immediate ran with 1 and last result 10']);
   });
+  it('should keep state in immediate', async () => {
+    const logs = createLogStore();
+    const outer = state(0);
+    const { result } = immediate(() => {
+      const o = outer();
+      logs.push(`outer immediate ran with ${o}`);
+      const inner = state(10);
+
+      immediate(() => {
+        logs.push(`inner immediate ran with ${inner!()} in outer ${o}`);
+      });
+      return inner;
+    });
+
+    expect(logs.take()).toEqual([
+      'outer immediate ran with 0',
+      'inner immediate ran with 10 in outer 0',
+    ]);
+    result.current!(20);
+    await wait();
+    expect(logs.take()).toEqual(['inner immediate ran with 20 in outer 0']);
+
+    outer(1);
+    await wait();
+    expect(logs.take()).toEqual([
+      'outer immediate ran with 1',
+      'inner immediate ran with 20 in outer 1',
+    ]);
+  });
 });
