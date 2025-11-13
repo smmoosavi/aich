@@ -1,4 +1,9 @@
-import { getCurrentEffect, getEffectContext, type Effect } from './effect';
+import {
+  getCurrentEffect,
+  getEffectContext,
+  getOrCreateEffectContext,
+  type Effect,
+} from './effect';
 
 /** @internal */
 declare module './effect' {
@@ -11,7 +16,7 @@ export interface Catch {
   catchFn: CatchFn;
   // effect that catch is applied to
   effect: Effect | CatchFn;
-  // effect that onError defined in. it may be the same as effect or ancestor effect
+  // effect that onError defined in. it may be the same effect or ancestor effect
   onErrorEffect: Effect;
   lastCatch?: Catch;
 }
@@ -21,6 +26,7 @@ export interface CatchFn {
 }
 
 export function onError(catchFn: CatchFn) {
+  getOrCreateEffectContext(catchFn);
   const effect = getCurrentEffect();
   if (!effect) {
     throw new Error('onError() must be called within an executing effect');
@@ -61,7 +67,7 @@ export function addChildCatch(parent: Effect, child: Effect | CatchFn) {
       onErrorEffect: parentCatch.onErrorEffect,
       lastCatch,
     };
-    const childContext = getEffectContext(child as Effect);
+    const childContext = getEffectContext(child);
     childContext.catch = c;
     return c;
   } else {
@@ -78,14 +84,14 @@ export function disposeEffectCatch(effect: Effect) {
 
 export function catchError(e: any, effect?: Effect | CatchFn) {
   if (effect) {
-    const context = getEffectContext(effect as Effect);
+    const context = getEffectContext(effect);
     let c = context.catch;
     while (c) {
       try {
         c.catchFn(e);
         return;
       } catch (ne) {
-        const catchContext = getEffectContext(c.catchFn as any as Effect);
+        const catchContext = getEffectContext(c.catchFn);
         c = catchContext.catch;
         e = ne;
         // catchError(ne, c.catchFn);

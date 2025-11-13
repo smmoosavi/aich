@@ -1,6 +1,11 @@
 import { addChildEffect, disposeChildEffects } from './children';
 import { runCleanups } from './cleanup';
-import { addChildCatch, catchError, disposeEffectCatch } from './on-error';
+import {
+  addChildCatch,
+  catchError,
+  disposeEffectCatch,
+  type CatchFn,
+} from './on-error';
 import { cleanupUnusedPins } from './pin';
 import { resetPinKey } from './pin-key';
 import { dropEffect, enqueue } from './queue';
@@ -8,14 +13,14 @@ import { getRoot } from './root';
 import { clearEffectSubs } from './sub';
 
 export type Effect<R = void> = () => R;
-export type Dispose = () => void;
+export type DisposeFn = () => void;
 export interface EffectHandle<R> {
-  dispose: Dispose;
+  dispose: DisposeFn;
   result: { current: R | undefined };
 }
 
 export interface EffectContext<R = unknown> {
-  effect: Effect<R>;
+  effect: Effect<R> | CatchFn;
   result: { current: R | undefined };
 }
 
@@ -23,11 +28,13 @@ export interface EffectContext<R = unknown> {
 declare module './root' {
   interface Root {
     currentEffect?: Effect | null;
-    effectContext?: WeakMap<Effect, EffectContext>;
+    effectContext?: WeakMap<Effect | CatchFn, EffectContext>;
   }
 }
 
-export function getEffectContext<R>(effect: Effect<R>): EffectContext<R> {
+export function getOrCreateEffectContext<R>(
+  effect: Effect<R> | CatchFn,
+): EffectContext<R> {
   const root = getRoot();
   if (!root.effectContext) {
     root.effectContext = new WeakMap();
@@ -40,28 +47,42 @@ export function getEffectContext<R>(effect: Effect<R>): EffectContext<R> {
   return context as EffectContext<R>;
 }
 
+export function getEffectContext<R>(
+  effect: Effect<R> | CatchFn,
+): EffectContext<R> {
+  const root = getRoot();
+  let context = root.effectContext?.get(effect);
+  if (!context) {
+    throw new Error('Effect context not found');
+  }
+
+  return context as EffectContext<R>;
+}
+
 export function effect<R>(fn: Effect<R>): EffectHandle<R> {
   const root = getRoot();
+  const context = getOrCreateEffectContext(fn);
+
   enqueue(fn);
   root.currentEffect && addChildEffect(root.currentEffect, fn);
   root.currentEffect && addChildCatch(root.currentEffect, fn);
-  const dispose = addEffectDispose(fn);
-  const context = getEffectContext(fn);
+  const dispose = createDisposeFn(fn);
   return { dispose, result: context.result };
 }
 
 export function immediate<R>(fn: Effect<R>): EffectHandle<R> {
   const root = getRoot();
+  const context = getOrCreateEffectContext(fn);
+
   enqueue(fn);
   root.currentEffect && addChildEffect(root.currentEffect, fn);
   root.currentEffect && addChildCatch(root.currentEffect, fn);
   runEffect(fn);
-  const dispose = addEffectDispose(fn);
-  const context = getEffectContext(fn);
+  const dispose = createDisposeFn(fn);
   return { dispose, result: context.result };
 }
 
-export function addEffectDispose(effect: Effect): Dispose {
+export function createDisposeFn(effect: Effect): DisposeFn {
   const dispose = () => {
     disposeEffect(effect);
   };
