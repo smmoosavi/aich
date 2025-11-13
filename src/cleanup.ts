@@ -1,3 +1,4 @@
+import { setName } from './debug';
 import {
   getCurrentEffect,
   getEffectContext,
@@ -16,7 +17,8 @@ declare module './effect' {
   }
 }
 
-export function cleanup(effect: Effect): void {
+export function cleanup(effect: Effect, key?: string | number): void {
+  setName(effect, 'CL', key);
   const parent = getCurrentEffect();
   if (!parent) {
     throw new Error('cleanup() must be called within an executing effect');

@@ -18,10 +18,14 @@ import {
   isEffectPinned,
   type PinEffectFn,
 } from './pin-effect';
+import { setName } from './debug';
 
 export type Effect<R = void> = () => R;
 export type DisposeFn = () => void;
+const EFFECT = Symbol('EFFECT');
 export interface EffectHandle<R> {
+  /** @internal */
+  [EFFECT]: Effect<R>;
   pin: PinEffectFn<R>;
   dispose: DisposeFn;
   result: { current: R | undefined };
@@ -69,18 +73,23 @@ export function getEffectContext<R>(
   return context as EffectContext<R>;
 }
 
+export function getEffectFromHandle(handle: EffectHandle<any>): Effect<any> {
+  return handle[EFFECT];
+}
+
 export function effect<R>(
   fn: Effect<R>,
   key?: string | number,
 ): EffectHandle<R> {
+  setName(fn, 'EF', key);
   const root = getRoot();
   const parentEffect = root.currentEffect ?? null;
   const effectKey = pinKey('EFFECT', key);
   const context = getOrCreateEffectContext(fn, effectKey);
   const dispose = createDisposeFn(fn);
-  const pinHandle = { dispose, result: context.result };
+  const pinHandle = { [EFFECT]: fn, dispose, result: context.result };
   const pin = createPinEffectFn(fn, parentEffect, effectKey, pinHandle);
-  const handle = { pin, dispose, result: context.result };
+  const handle = { [EFFECT]: fn, pin, dispose, result: context.result };
 
   if (!isEffectPinned(parentEffect, effectKey)) {
     enqueue(fn);
@@ -94,14 +103,15 @@ export function immediate<R>(
   fn: Effect<R>,
   key?: string | number,
 ): EffectHandle<R> {
+  setName(fn, 'IM', key);
   const root = getRoot();
   const parentEffect = root.currentEffect ?? null;
   const effectKey = pinKey('EFFECT', key);
   const context = getOrCreateEffectContext(fn, effectKey);
   const dispose = createDisposeFn(fn);
-  const pinHandle = { dispose, result: context.result };
+  const pinHandle = { [EFFECT]: fn, dispose, result: context.result };
   const pin = createPinEffectFn(fn, parentEffect, effectKey, pinHandle);
-  const handle = { pin, dispose, result: context.result };
+  const handle = { [EFFECT]: fn, pin, dispose, result: context.result };
 
   if (!isEffectPinned(parentEffect, effectKey)) {
     enqueue(fn);

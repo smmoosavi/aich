@@ -1,3 +1,4 @@
+import { setName } from './debug';
 import {
   getCurrentEffect,
   getEffectContext,
@@ -26,7 +27,8 @@ export interface CatchFn {
   (e: any): void;
 }
 
-export function onError(catchFn: CatchFn) {
+export function onError(catchFn: CatchFn, key?: string | number) {
+  setName(catchFn, 'CATCH', key);
   getOrCreateEffectContext(catchFn, pinKey('ON_ERROR'));
   const effect = getCurrentEffect();
   if (!effect) {
