@@ -5,6 +5,11 @@ interface logStore {
    */
   logs(): string[];
   /**
+   * Returns all logs joined as a single string.
+   * @returns A string containing all logs joined by newlines.
+   */
+  joined(): string;
+  /**
    * Clears all logs from the store.
    */
   clear(): void;
@@ -18,6 +23,11 @@ interface logStore {
    * @returns An array of all logs that were in the store.
    */
   take(): string[];
+  /**
+   * Returns all logs joined as a single string and clears the store.
+   * @returns A string containing all logs joined by newlines.
+   */
+  takeJoined(): string;
 }
 
 /**
@@ -55,6 +65,9 @@ export function createLogStore(): logStore {
     logs() {
       return logs;
     },
+    joined() {
+      return logs.join('\n');
+    },
     clear() {
       logs = [];
     },
@@ -63,6 +76,11 @@ export function createLogStore(): logStore {
     },
     take() {
       const takenLogs = logs;
+      logs = [];
+      return takenLogs;
+    },
+    takeJoined() {
+      const takenLogs = logs.join('\n');
       logs = [];
       return takenLogs;
     },
