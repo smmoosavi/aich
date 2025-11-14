@@ -49,6 +49,11 @@ declare module './root' {
   interface Root {
     debugContext?: DebugContext;
     debugHighlightOptions?: HighlightOptions;
+    debugSetName?: (
+      effect: Function,
+      prefix: string,
+      key: number | string,
+    ) => void;
   }
 }
 
@@ -73,6 +78,25 @@ function getIndex(prefix: string): number {
 }
 
 export function setName(
+  effect: Function,
+  prefix: string = '',
+  key: number | string = '',
+) {
+  const root = getRoot();
+  root.debugSetName?.(effect, prefix, key);
+}
+
+export function enableDebugNames() {
+  const root = getRoot();
+  root.debugSetName = _setName;
+}
+
+export function disableDebugNames() {
+  const root = getRoot();
+  root.debugSetName = undefined;
+}
+
+export function _setName(
   effect: Function,
   prefix: string = '',
   key: number | string = '',
