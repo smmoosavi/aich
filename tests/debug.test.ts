@@ -5,10 +5,18 @@ import {
   getName,
   resetDebug,
   setHighlightOptions,
+  disableDebugNames,
+  enableDebugNames,
 } from '../src/debug';
 import { createLogStore } from './log';
 
 describe('debug effect', () => {
+  beforeAll(() => {
+    enableDebugNames();
+  });
+  afterAll(() => {
+    disableDebugNames();
+  });
   test('empty effect', () => {
     resetDebug();
     const logs = createLogStore();
@@ -227,39 +235,39 @@ describe('debug effect', () => {
     expect(getName(function myFunction() {})).toBe('myFunction');
     expect(getName(() => {})).toBe('');
   });
-});
-describe('debug effect with highlight', () => {
-  beforeAll(() => {
-    setHighlightOptions(ansiHighlightOptions);
-  });
-  afterAll(() => {
-    setHighlightOptions(undefined);
-  });
-  test('all', () => {
-    resetDebug();
-    const logs = createLogStore();
-    const count1 = state(0);
-    const count2 = state(0, 'with-key');
-    const e1 = effect(function named() {
-      count1();
-      count2();
-      onError(() => {}, 'catch-all');
-      onError(() => {});
-      effect(() => {
-        onError(() => {});
-        cleanup(() => {});
-      });
-      effect(() => {
-        cleanup(() => {});
-      });
-      effect(() => {}).pin();
-      effect(() => {}, 'with-key');
-      cleanup(() => {});
-      cleanup(() => {}, 'with-key');
+
+  describe('debug effect with highlight', () => {
+    beforeAll(() => {
+      setHighlightOptions(ansiHighlightOptions);
     });
-    flush();
-    debugEffect(e1, { logger: logs.push });
-    expect(logs.takeJoined()).toMatchInlineSnapshot(`
+    afterAll(() => {
+      setHighlightOptions(undefined);
+    });
+    test('all', () => {
+      resetDebug();
+      const logs = createLogStore();
+      const count1 = state(0);
+      const count2 = state(0, 'with-key');
+      const e1 = effect(function named() {
+        count1();
+        count2();
+        onError(() => {}, 'catch-all');
+        onError(() => {});
+        effect(() => {
+          onError(() => {});
+          cleanup(() => {});
+        });
+        effect(() => {
+          cleanup(() => {});
+        });
+        effect(() => {}).pin();
+        effect(() => {}, 'with-key');
+        cleanup(() => {});
+        cleanup(() => {}, 'with-key');
+      });
+      flush();
+      debugEffect(e1, { logger: logs.push });
+      expect(logs.takeJoined()).toMatchInlineSnapshot(`
       "
 
       ------------ Effect: [36mnamed[0m[90m#EF1[0m ------------
@@ -281,5 +289,6 @@ describe('debug effect with highlight', () => {
 
       "
     `);
+    });
   });
 });
