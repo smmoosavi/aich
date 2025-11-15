@@ -7,7 +7,7 @@ import {
   setHighlightOptions,
   disableDebugNames,
   enableDebugNames,
-} from '../src/debug';
+} from './debug';
 import { createLogStore } from './log';
 
 describe('debug effect', () => {
