@@ -19,6 +19,7 @@ import {
   type PinEffectFn,
 } from './pin-effect';
 import { setName } from './debug';
+import { clearUsedEffects, markEffectAsUsed } from './used-effect';
 
 export type Effect<R = void> = () => R;
 export type DisposeFn = () => void;
@@ -90,6 +91,7 @@ export function effect<R>(
   const pinHandle = { [EFFECT]: fn, dispose, result: context.result };
   const pin = createPinEffectFn(fn, parentEffect, effectKey, pinHandle);
   const handle = { [EFFECT]: fn, pin, dispose, result: context.result };
+  parentEffect && markEffectAsUsed(parentEffect, effectKey);
 
   if (!isEffectPinned(parentEffect, effectKey)) {
     enqueue(fn);
@@ -112,6 +114,7 @@ export function immediate<R>(
   const pinHandle = { [EFFECT]: fn, dispose, result: context.result };
   const pin = createPinEffectFn(fn, parentEffect, effectKey, pinHandle);
   const handle = { [EFFECT]: fn, pin, dispose, result: context.result };
+  parentEffect && markEffectAsUsed(parentEffect, effectKey);
 
   if (!isEffectPinned(parentEffect, effectKey)) {
     enqueue(fn);
@@ -135,6 +138,7 @@ export function disposeEffect(effect: Effect, unmount: boolean) {
   runCleanups(effect);
   clearEffectSubs(effect);
   cleanupUnusedPins(effect);
+  clearUsedEffects(effect);
   resetPinKey(effect);
   disposeEffectCatch(effect);
 }

@@ -1,6 +1,7 @@
 import { disposeEffect, getEffectContext, type Effect } from './effect';
 import { isEffectPinned } from './pin-effect';
 import type { PinKey } from './pin-key';
+import { isEffectUsed } from './used-effect';
 
 /** @internal */
 declare module './effect' {
@@ -40,7 +41,9 @@ export function disposeChildEffects(parent: Effect, unmount: boolean) {
         if (!unmount && isEffectPinned(parent, childKey)) {
           return;
         }
-        childMap.delete(childKey);
+        if (!isEffectUsed(parent, childKey)) {
+          childMap.delete(childKey);
+        }
         disposeEffect(child, true);
       });
     if (childMap.size === 0) {
