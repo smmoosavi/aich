@@ -229,7 +229,7 @@ function debugStates(effect: Effect<any>) {
 function debugChildren(effect: Effect<any>, context: EffectContext<any>) {
   const children = context.children;
   if (children) {
-    for (const child of children) {
+    for (const child of children.values()) {
       const childContext = getEffectContext(child);
       const childKey = childContext.key;
       const childPinned = isEffectPinned(effect, childKey);

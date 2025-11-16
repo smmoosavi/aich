@@ -93,7 +93,7 @@ export function effect<R>(
 
   if (!isEffectPinned(parentEffect, effectKey)) {
     enqueue(fn);
-    parentEffect && addChildEffect(parentEffect, fn);
+    parentEffect && addChildEffect(parentEffect, fn, effectKey);
     parentEffect && addChildCatch(parentEffect, fn);
   }
   return handle;
@@ -115,7 +115,7 @@ export function immediate<R>(
 
   if (!isEffectPinned(parentEffect, effectKey)) {
     enqueue(fn);
-    parentEffect && addChildEffect(parentEffect, fn);
+    parentEffect && addChildEffect(parentEffect, fn, effectKey);
     parentEffect && addChildCatch(parentEffect, fn);
     runEffect(fn);
   }
