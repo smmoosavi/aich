@@ -126,7 +126,7 @@ describe('pin effect', () => {
       'parent cleaned up 3',
     ]);
   });
-  test('pinning a nested unpin effect doesnt prevent re-running', async () => {
+  test('pinning a nested effect in unpin effect', async () => {
     const logs = createLogStore();
     const count1 = state(0);
     const count2 = state(10);
@@ -188,17 +188,15 @@ describe('pin effect', () => {
     count1(1);
     await wait();
     expect(logs.take()).toEqual([
-      'deeply nested effect cleaned up 200 in 10 in 0',
       'nested effect cleaned up 20 in 0',
       'parent cleaned up 0',
       'parent ran 1',
       'nested effect ran 20 in 1',
-      'deeply nested effect ran 200 in 20 in 1',
     ]);
 
     dispose();
     expect(logs.take()).toEqual([
-      'deeply nested effect cleaned up 200 in 20 in 1',
+      'deeply nested effect cleaned up 200 in 10 in 0',
       'nested effect cleaned up 20 in 1',
       'parent cleaned up 1',
     ]);

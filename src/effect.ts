@@ -1,4 +1,8 @@
-import { addChildEffect, disposeChildEffects } from './children';
+import {
+  addChildEffect,
+  disposeChildEffects,
+  getChildEffect,
+} from './children';
 import { runCleanups } from './cleanup';
 import {
   addChildCatch,
@@ -33,7 +37,6 @@ export interface EffectHandle<R> {
 }
 
 export interface EffectContext<R = unknown> {
-  effect: Effect<R> | CatchFn;
   key: PinKey;
   result: { current: R | undefined };
 }
@@ -47,6 +50,7 @@ declare module './root' {
 }
 
 export function getOrCreateEffectContext<R>(
+  parent: Effect | null,
   effect: Effect<R> | CatchFn,
   key: PinKey,
 ): EffectContext<R> {
@@ -54,11 +58,19 @@ export function getOrCreateEffectContext<R>(
   if (!root.effectContext) {
     root.effectContext = new WeakMap();
   }
-  let context = root.effectContext.get(effect);
-  if (!context) {
-    context = { effect, key, result: { current: undefined } };
-    root.effectContext.set(effect, context);
+
+  if (parent) {
+    const existingEffect = getChildEffect(parent, key);
+    if (existingEffect) {
+      const context = root.effectContext.get(existingEffect);
+      if (context) {
+        root.effectContext.set(effect, context);
+        return context as EffectContext<R>;
+      }
+    }
   }
+  const context = { key, result: { current: undefined } };
+  root.effectContext.set(effect, context);
   return context as EffectContext<R>;
 }
 
@@ -86,7 +98,7 @@ export function effect<R>(
   const root = getRoot();
   const parentEffect = root.currentEffect ?? null;
   const effectKey = pinKey('EFFECT', key);
-  const context = getOrCreateEffectContext(fn, effectKey);
+  const context = getOrCreateEffectContext(parentEffect, fn, effectKey);
   const dispose = createDisposeFn(fn);
   const pinHandle = { [EFFECT]: fn, dispose, result: context.result };
   const pin = createPinEffectFn(fn, parentEffect, effectKey, pinHandle);
@@ -109,7 +121,7 @@ export function immediate<R>(
   const root = getRoot();
   const parentEffect = root.currentEffect ?? null;
   const effectKey = pinKey('EFFECT', key);
-  const context = getOrCreateEffectContext(fn, effectKey);
+  const context = getOrCreateEffectContext(parentEffect, fn, effectKey);
   const dispose = createDisposeFn(fn);
   const pinHandle = { [EFFECT]: fn, dispose, result: context.result };
   const pin = createPinEffectFn(fn, parentEffect, effectKey, pinHandle);

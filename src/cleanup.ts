@@ -23,7 +23,7 @@ export function cleanup(effect: Effect, key?: string | number): void {
   if (!parent) {
     throw new Error('cleanup() must be called within an executing effect');
   }
-  getOrCreateEffectContext(effect, pinKey('CLEANUP'));
+  getOrCreateEffectContext(parent, effect, pinKey('CLEANUP'));
   addCleanupEffect(parent, effect);
 }
 

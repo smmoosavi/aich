@@ -29,11 +29,11 @@ export interface CatchFn {
 
 export function onError(catchFn: CatchFn, key?: string | number) {
   setName(catchFn, 'CATCH', key);
-  getOrCreateEffectContext(catchFn, pinKey('ON_ERROR'));
   const effect = getCurrentEffect();
   if (!effect) {
     throw new Error('onError() must be called within an executing effect');
   }
+  getOrCreateEffectContext(effect, catchFn, pinKey('ON_ERROR'));
   addChildCatch(effect, catchFn);
   addCatch(catchFn, effect);
 }

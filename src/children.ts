@@ -44,7 +44,7 @@ export function disposeChildEffects(parent: Effect, unmount: boolean) {
         if (!isEffectUsed(parent, childKey)) {
           childMap.delete(childKey);
         }
-        disposeEffect(child, true);
+        disposeEffect(child, unmount);
       });
     if (childMap.size === 0) {
       context.children = undefined;
