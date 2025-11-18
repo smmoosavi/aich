@@ -81,6 +81,15 @@ export function disableDebugNames() {
   root.debugHooks = undefined;
 }
 
+export function enableConsoleLogger(debugValue: DebugValue = false) {
+  enableDebugNames();
+  setHighlightOptions(ansiHighlightOptions);
+  const context = getDebugContext();
+  context.options = {};
+  context.options!.debugValue = debugValue;
+  context.options!.logger = console.log;
+}
+
 export function _setName(
   context: EffectContext | State<unknown>,
   prefix: string = '',
