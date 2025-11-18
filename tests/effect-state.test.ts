@@ -597,6 +597,84 @@ describe('effect with state', () => {
     expect(logs.take()).toEqual([]);
   });
 
+  test('state defined in effect', async () => {
+    const logs = createLogStore();
+    const outer = state(1);
+    const { result } = effect(() => {
+      const inner = state(10);
+      logs.push(`outer effect ran with ${outer()}`);
+      effect(() => {
+        logs.push(`inner effect ran with ${inner()} in outer ${outer()}`);
+      });
+      return inner;
+    });
+
+    await wait();
+    expect(logs.take()).toEqual([
+      'outer effect ran with 1',
+      'inner effect ran with 10 in outer 1',
+    ]);
+
+    result.current?.(20);
+    await wait();
+    expect(logs.take()).toEqual(['inner effect ran with 20 in outer 1']);
+
+    outer(2);
+    await wait();
+    expect(logs.take()).toEqual([
+      'outer effect ran with 2',
+      'inner effect ran with 20 in outer 2',
+    ]);
+  });
+
+  test('state defined in nested effect', async () => {
+    const logs = createLogStore();
+    const outer = state(1);
+    const { result } = effect(() => {
+      const middle = state(10);
+      logs.push(`outer effect ran with ${outer()}`);
+      const { result: innerResult } = effect(() => {
+        const inner = state(100);
+        logs.push(`middle effect ran with ${middle()} in outer ${outer()}`);
+        effect(() => {
+          logs.push(
+            `inner effect ran with ${inner()} in middle ${middle()} in outer ${outer()}`,
+          );
+        });
+        return inner;
+      });
+      return { middle, inner: innerResult };
+    });
+
+    await wait();
+    expect(logs.take()).toEqual([
+      'outer effect ran with 1',
+      'middle effect ran with 10 in outer 1',
+      'inner effect ran with 100 in middle 10 in outer 1',
+    ]);
+
+    result.current?.inner.current?.(200);
+    await wait();
+    expect(logs.take()).toEqual([
+      'inner effect ran with 200 in middle 10 in outer 1',
+    ]);
+
+    result.current?.middle(20);
+    await wait();
+    expect(logs.take()).toEqual([
+      'middle effect ran with 20 in outer 1',
+      'inner effect ran with 200 in middle 20 in outer 1',
+    ]);
+
+    outer(2);
+    await wait();
+    expect(logs.take()).toEqual([
+      'outer effect ran with 2',
+      'middle effect ran with 20 in outer 2',
+      'inner effect ran with 100 in middle 20 in outer 2', // expect inner value be 200
+    ]);
+  });
+
   test('state with duplicate keys in same effect should throw error', async () => {
     effect(() => {
       state(0, 'duplicate-key');
