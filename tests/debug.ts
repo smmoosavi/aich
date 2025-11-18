@@ -37,6 +37,7 @@ export function setHighlightOptions(options: HighlightOptions | undefined) {
 
 interface DebugContext {
   names: WeakMap<EffectContext | State<unknown>, string>;
+  isState: WeakSet<State<unknown>>;
   indexes: Map<string, number>;
   indent: number;
   options?: DebugOptions;
@@ -55,6 +56,7 @@ function getDebugContext(): DebugContext {
   if (!root.debugContext) {
     root.debugContext = {
       names: new WeakMap<EffectContext | State<unknown>, string>(),
+      isState: new WeakSet<State<unknown>>(),
       indexes: new Map<string, number>(),
       indent: 0,
     };
@@ -84,10 +86,10 @@ export function disableDebugNames() {
 export function enableConsoleLogger(debugValue: DebugValue = false) {
   enableDebugNames();
   setHighlightOptions(ansiHighlightOptions);
-  const context = getDebugContext();
-  context.options = {};
-  context.options!.debugValue = debugValue;
-  context.options!.logger = console.log;
+  setDebugOptions({
+    logger: console.log,
+    debugValue,
+  });
 }
 
 export function _setName(
@@ -95,8 +97,11 @@ export function _setName(
   prefix: string = '',
   key: number | string = '',
 ) {
-  const { names } = getDebugContext();
+  const { names, isState } = getDebugContext();
   if (!names.has(context)) {
+    if (prefix === 'ST') {
+      isState.add(context as State<unknown>);
+    }
     const effectName = highlight(`${key || getContextName(context)}`, 'name');
     const index = getIndex(prefix);
     const num = highlight(`#${prefix}${index}`, 'num');
@@ -136,6 +141,18 @@ export function getName(context: EffectContext | State<unknown>): string {
   return names.get(context) || getContextName(context);
 }
 
+function hasName(value: any) {
+  // WeakMap keys must be objects or functions; primitives should never hit the map
+  if (
+    (typeof value !== 'object' || value === null) &&
+    typeof value !== 'function'
+  ) {
+    return false;
+  }
+  const { names } = getDebugContext();
+  return names.has(value);
+}
+
 function withIndent<T>(fn: () => T): T {
   const context = getDebugContext();
   context.indent++;
@@ -164,21 +181,32 @@ function log(msg: string) {
 }
 
 function debugValue(value: any): string | undefined {
-  const context = getDebugContext();
-  const options = context.options;
-  if (options?.debugValue) {
-    if (typeof options.debugValue === 'function') {
-      return options.debugValue(value);
-    } else if (options.debugValue === true) {
-      return JSON.stringify(value);
+  try {
+    const context = getDebugContext();
+    const options = context.options;
+    if (options?.debugValue) {
+      if (typeof options.debugValue === 'function') {
+        return options.debugValue(value);
+      } else if (options.debugValue === true) {
+        return JSON.stringify(value);
+      }
     }
+  } catch {
+    // ignore errors in debug value
   }
   return undefined;
 }
 
 export function resetDebug() {
   const root = getRoot();
+  const options = root.debugContext?.options;
   root.debugContext = undefined;
+  setDebugOptions(options);
+}
+
+export function setDebugOptions(options: DebugOptions | undefined) {
+  const context = getDebugContext();
+  context.options = options;
 }
 
 export function debugEffect(
@@ -218,6 +246,34 @@ function debugOnError(effect: EffectContext<any>, ch: Catch | undefined) {
       text += ` [${getCatchStack(ch.lastCatch)}]`;
     }
     log(text);
+  }
+}
+
+function debugPins(effect: EffectContext<any>) {
+  const { isState } = getDebugContext();
+  const pins = effect.pinContext?.byKey;
+  if (pins) {
+    for (const [key, value] of pins.entries()) {
+      if (hasName(value)) {
+        let text = `Pin: ${String(key)} -> ${getName(value)}`;
+        if (isState.has(value)) {
+          const state = value as State<unknown>;
+          const v = untrack(() => state());
+          const dv = debugValue(v);
+          if (dv !== undefined) {
+            text += ` = ${dv}`;
+          }
+        }
+        log(text);
+      } else {
+        const dv = debugValue(value);
+        let text = `Pin: ${String(key)}`;
+        if (dv !== undefined) {
+          text += ` = ${dv}`;
+        }
+        log(text);
+      }
+    }
   }
 }
 
@@ -264,6 +320,7 @@ function _debugEffect(effect: EffectContext<any>) {
 
   withIndent(() => {
     debugOnError(effect, effect.catch);
+    debugPins(effect);
     debugStates(effect);
     debugChildren(effect);
     debugCleanups(effect);
