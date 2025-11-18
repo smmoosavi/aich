@@ -1,8 +1,10 @@
 import { getRoot } from './root';
+import type { EffectContext } from './effect';
+import type { State } from './state';
 
 export interface DebugHooks {
   debugSetName?: (
-    effect: Function,
+    effect: EffectContext | State<unknown>,
     prefix: string,
     key: number | string,
   ) => void;
@@ -16,7 +18,7 @@ declare module './root' {
 }
 
 export function setName(
-  effect: Function,
+  effect: EffectContext | State<any>,
   prefix: string = '',
   key: number | string = '',
 ) {

@@ -1,9 +1,8 @@
 import { setName } from './debug';
 import {
   getCurrentEffect,
-  getEffectContext,
   getOrCreateEffectContext,
-  type Effect,
+  type EffectContext,
 } from './effect';
 import { pinKey } from './pin-key';
 
@@ -16,10 +15,12 @@ declare module './effect' {
 
 export interface Catch {
   catchFn: CatchFn;
+  // context created for catch function
+  catchFnContext: EffectContext;
   // effect that catch is applied to
-  effect: Effect | CatchFn;
+  effect: EffectContext;
   // effect that onError defined in. it may be the same effect or ancestor effect
-  onErrorEffect: Effect;
+  onErrorEffect: EffectContext;
   lastCatch?: Catch;
 }
 
@@ -28,26 +29,30 @@ export interface CatchFn {
 }
 
 export function onError(catchFn: CatchFn, key?: string | number) {
-  setName(catchFn, 'CATCH', key);
   const effect = getCurrentEffect();
   if (!effect) {
     throw new Error('onError() must be called within an executing effect');
   }
-  getOrCreateEffectContext(effect, catchFn, pinKey('ON_ERROR'));
-  addChildCatch(effect, catchFn);
-  addCatch(catchFn, effect);
+  const context = getOrCreateEffectContext(effect, catchFn, pinKey('ON_ERROR'));
+  setName(context, 'CATCH', key);
+  addChildCatch(effect, context);
+  addCatch(catchFn, context, effect);
 }
 
-export function addCatch(catchFn: CatchFn, effect: Effect) {
-  const context = getEffectContext(effect);
-  const lastCatch = context.catch;
+export function addCatch(
+  catchFn: CatchFn,
+  catchFnContext: EffectContext,
+  effectContext: EffectContext,
+) {
+  const lastCatch = effectContext.catch;
   const c = {
     catchFn,
-    effect,
-    onErrorEffect: effect,
+    catchFnContext,
+    effect: effectContext,
+    onErrorEffect: effectContext,
     lastCatch,
   };
-  context.catch = c;
+  effectContext.catch = c;
   return c;
 }
 
@@ -56,9 +61,8 @@ export function addCatch(catchFn: CatchFn, effect: Effect) {
  * @param parent
  * @param child
  */
-export function addChildCatch(parent: Effect, child: Effect | CatchFn) {
-  const parentContext = getEffectContext(parent);
-  const parentCatch = parentContext.catch;
+export function addChildCatch(parent: EffectContext, child: EffectContext) {
+  const parentCatch = parent.catch;
   if (parentCatch) {
     let lastCatch: Catch | undefined = undefined;
     if (parentCatch.onErrorEffect === parent) {
@@ -66,38 +70,35 @@ export function addChildCatch(parent: Effect, child: Effect | CatchFn) {
     }
     const c = {
       catchFn: parentCatch.catchFn,
+      catchFnContext: parentCatch.catchFnContext,
       effect: child,
       onErrorEffect: parentCatch.onErrorEffect,
       lastCatch,
     };
-    const childContext = getEffectContext(child);
-    childContext.catch = c;
+    child.catch = c;
     return c;
   } else {
   }
 }
 
-export function disposeEffectCatch(effect: Effect) {
-  const context = getEffectContext(effect);
+export function disposeEffectCatch(context: EffectContext) {
   const c = context.catch;
-  if (c && c.onErrorEffect === effect) {
+  if (c && c.onErrorEffect === context) {
     context.catch = undefined;
   }
 }
 
-export function catchError(e: any, effect?: Effect | CatchFn) {
-  if (effect) {
-    const context = getEffectContext(effect);
+export function catchError(e: any, context?: EffectContext) {
+  if (context) {
     let c = context.catch;
     while (c) {
       try {
         c.catchFn(e);
         return;
       } catch (ne) {
-        const catchContext = getEffectContext(c.catchFn);
+        const catchContext = c.catchFnContext;
         c = catchContext.catch;
         e = ne;
-        // catchError(ne, c.catchFn);
       }
     }
   }

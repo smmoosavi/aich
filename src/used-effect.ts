@@ -1,5 +1,5 @@
 import type { PinKey } from './pin-key';
-import { type Effect, getEffectContext } from './effect';
+import { type EffectContext } from './effect';
 
 /** @internal */
 declare module './effect' {
@@ -8,20 +8,17 @@ declare module './effect' {
   }
 }
 
-export function markEffectAsUsed(parent: Effect, key: PinKey) {
-  const context = getEffectContext(parent);
-  if (!context.usedEffects) {
-    context.usedEffects = new Set<PinKey>();
+export function markEffectAsUsed(parent: EffectContext, key: PinKey) {
+  if (!parent.usedEffects) {
+    parent.usedEffects = new Set<PinKey>();
   }
-  context.usedEffects.add(key);
+  parent.usedEffects.add(key);
 }
 
-export function isEffectUsed(parent: Effect, key: PinKey): boolean {
-  const context = getEffectContext(parent);
-  return context.usedEffects?.has(key) ?? false;
+export function isEffectUsed(parent: EffectContext, key: PinKey): boolean {
+  return parent.usedEffects?.has(key) ?? false;
 }
 
-export function clearUsedEffects(effect: Effect) {
-  const context = getEffectContext(effect);
+export function clearUsedEffects(context: EffectContext) {
   context.usedEffects = undefined;
 }

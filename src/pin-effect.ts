@@ -1,11 +1,6 @@
-import {
-  getEffectContext,
-  type Effect,
-  type EffectHandle,
-  disposeEffect,
-} from './effect';
+import { disposeEffect, type EffectContext, type EffectHandle } from './effect';
 import type { PinKey } from './pin-key';
-import { getChildEffect } from './children';
+import { getChildContext } from './children';
 import { isEffectUsed } from './used-effect';
 
 export type PinEffectFn<R = void> = () => Omit<EffectHandle<R>, 'pin'>;
@@ -18,50 +13,45 @@ declare module './effect' {
 }
 
 export function createPinEffectFn<R>(
-  fn: Effect<R>,
-  parent: Effect | null,
+  parentContext: EffectContext | undefined,
   key: PinKey,
   handle: Omit<EffectHandle<R>, 'pin'>,
 ): PinEffectFn<R> {
   return () => {
-    pinEffect<R>(fn, parent, key);
+    pinEffect<R>(parentContext, key);
     return handle;
   };
 }
 
 export function pinEffect<R>(
-  fn: Effect<R>,
-  parent: Effect | null,
+  parentContext: EffectContext | undefined,
   key: PinKey,
 ): void {
-  if (!parent) {
+  if (!parentContext) {
     return;
   }
-  const parentContext = getEffectContext(parent);
   if (!parentContext.pinnedEffects) {
     parentContext.pinnedEffects = new Set();
   }
   parentContext.pinnedEffects.add(key);
 }
 
-export function isEffectPinned(parent: Effect | null, key: PinKey) {
+export function isEffectPinned(parent: EffectContext | undefined, key: PinKey) {
   if (!parent) {
     return false;
   }
-  const parentContext = getEffectContext(parent);
-  return parentContext?.pinnedEffects?.has(key) ?? false;
+  return parent?.pinnedEffects?.has(key) ?? false;
 }
 
-export function disposeUnusedPinnedEffects(effect: Effect) {
-  const context = getEffectContext(effect);
+export function disposeUnusedPinnedEffects(context: EffectContext) {
   const pinnedEffect = context.pinnedEffects;
   if (pinnedEffect) {
     for (const key of pinnedEffect) {
-      if (!isEffectUsed(effect, key)) {
+      if (!isEffectUsed(context, key)) {
         pinnedEffect.delete(key);
-        const childEffect = getChildEffect(effect, key);
-        if (childEffect) {
-          disposeEffect(childEffect, true);
+        const child = getChildContext(context, key);
+        if (child) {
+          disposeEffect(child, true);
         }
       }
     }

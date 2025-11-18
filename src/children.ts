@@ -1,4 +1,4 @@
-import { disposeEffect, getEffectContext, type Effect } from './effect';
+import { disposeEffect, type EffectContext } from './effect';
 import { isEffectPinned } from './pin-effect';
 import type { PinKey } from './pin-key';
 import { isEffectUsed } from './used-effect';
@@ -6,34 +6,37 @@ import { isEffectUsed } from './used-effect';
 /** @internal */
 declare module './effect' {
   interface EffectContext {
-    children?: Map<PinKey, Effect>;
+    children?: Map<PinKey, EffectContext>;
   }
 }
 
-export function getEffectChildren(effect: Effect): Map<PinKey, Effect> {
-  const context = getEffectContext(effect);
+export function getEffectChildren(
+  context: EffectContext,
+): Map<PinKey, EffectContext> {
   if (!context.children) {
     context.children = new Map();
   }
   return context.children;
 }
 
-export function addChildEffect(parent: Effect, child: Effect, key: PinKey) {
+export function addChildEffect(
+  parent: EffectContext,
+  child: EffectContext,
+  key: PinKey,
+) {
   const children = getEffectChildren(parent);
   children.set(key, child);
 }
 
-export function getChildEffect(
-  parent: Effect,
+export function getChildContext(
+  parent: EffectContext,
   key: PinKey,
-): Effect | undefined {
-  const context = getEffectContext(parent);
-  return context.children?.get(key);
+): EffectContext | undefined {
+  return parent.children?.get(key);
 }
 
-export function disposeChildEffects(parent: Effect, unmount: boolean) {
-  const context = getEffectContext(parent);
-  const childMap = context.children;
+export function disposeChildEffects(parent: EffectContext, unmount: boolean) {
+  const childMap = parent.children;
   if (childMap) {
     Array.from(childMap.entries())
       .reverse()
@@ -47,7 +50,7 @@ export function disposeChildEffects(parent: Effect, unmount: boolean) {
         disposeEffect(child, unmount);
       });
     if (childMap.size === 0) {
-      context.children = undefined;
+      parent.children = undefined;
     }
   }
 }

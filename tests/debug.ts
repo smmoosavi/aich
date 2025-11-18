@@ -1,7 +1,5 @@
 import {
-  getEffectContext,
   getEffectFromHandle,
-  type Effect,
   type EffectContext,
   type EffectHandle,
 } from '../src/effect';
@@ -9,6 +7,7 @@ import type { Catch } from '../src/on-error';
 import { isEffectPinned } from '../src/pin-effect';
 import { getRoot } from '../src/root';
 import { untrack } from '../src/sub';
+import type { State } from '../src/state';
 
 export type DebugValue = boolean | ((value: any) => string | undefined);
 export type DebugLogger = (msg: string) => void;
@@ -38,7 +37,7 @@ export function setHighlightOptions(options: HighlightOptions | undefined) {
 }
 
 interface DebugContext {
-  names: WeakMap<Function, string>;
+  names: WeakMap<EffectContext | State<unknown>, string>;
   indexes: Map<string, number>;
   indent: number;
   options?: DebugOptions;
@@ -56,7 +55,7 @@ function getDebugContext(): DebugContext {
   const root = getRoot();
   if (!root.debugContext) {
     root.debugContext = {
-      names: new WeakMap<Function, string>(),
+      names: new WeakMap<EffectContext | State<unknown>, string>(),
       indexes: new Map<string, number>(),
       indent: 0,
     };
@@ -84,18 +83,29 @@ export function disableDebugNames() {
 }
 
 export function _setName(
-  effect: Function,
+  context: EffectContext | State<unknown>,
   prefix: string = '',
   key: number | string = '',
 ) {
   const { names } = getDebugContext();
-  if (!names.has(effect)) {
-    const effectName = highlight(`${key || effect.name}`, 'name');
+  if (!names.has(context)) {
+    const effectName = highlight(`${key || getContextName(context)}`, 'name');
     const index = getIndex(prefix);
     const num = highlight(`#${prefix}${index}`, 'num');
     let name = `${effectName}${num}`;
-    names.set(effect, name);
+    names.set(context, name);
   }
+}
+
+function getContextName(context: EffectContext | State<unknown>): string {
+  const { names } = getDebugContext();
+  if (names.has(context)) {
+    return names.get(context) || '';
+  }
+  if (typeof context === 'function') {
+    return context.name || '';
+  }
+  return context.effect?.name || context.catchFn?.name || '';
 }
 
 export function highlight(
@@ -113,9 +123,9 @@ export function highlight(
   return text;
 }
 
-export function getName(effect: Function): string {
+export function getName(context: EffectContext | State<unknown>): string {
   const { names } = getDebugContext();
-  return names.get(effect) || effect.name || '';
+  return names.get(context) || getContextName(context);
 }
 
 function withIndent<T>(fn: () => T): T {
@@ -182,27 +192,23 @@ export function debugEffect(
   });
 }
 
-function debugEffectHeader(
-  effect: Effect<any>,
-  pinned: boolean,
-  context: EffectContext<any>,
-) {
+function debugEffectHeader(effect: EffectContext<any>, pinned: boolean) {
   let text = `Effect: ${getName(effect)}`;
   if (pinned) {
     text += ' (pinned)';
   }
-  if (context.catch) {
-    text += ` [${getName(context.catch.catchFn)}]`;
+  if (effect.catch) {
+    text += ` [${getName(effect.catch.catchFnContext)}]`;
   }
   log(text);
 }
 
-function debugOnError(effect: Effect<any>, ch: Catch | undefined) {
+function debugOnError(effect: EffectContext<any>, ch: Catch | undefined) {
   if (ch?.lastCatch?.onErrorEffect === effect) {
     debugOnError(effect, ch.lastCatch);
   }
   if (ch?.onErrorEffect === effect) {
-    let text = `OnError ${getName(ch.catchFn)}`;
+    let text = `OnError ${getName(ch.catchFnContext)}`;
     if (ch.lastCatch) {
       text += ` [${getCatchStack(ch.lastCatch)}]`;
     }
@@ -210,7 +216,7 @@ function debugOnError(effect: Effect<any>, ch: Catch | undefined) {
   }
 }
 
-function debugStates(effect: Effect<any>) {
+function debugStates(effect: EffectContext<any>) {
   const root = getRoot();
   const states = root.subs?.byEffect.get(effect);
   if (states) {
@@ -226,12 +232,11 @@ function debugStates(effect: Effect<any>) {
   }
 }
 
-function debugChildren(effect: Effect<any>, context: EffectContext<any>) {
-  const children = context.children;
+function debugChildren(effect: EffectContext<any>) {
+  const children = effect.children;
   if (children) {
     for (const child of children.values()) {
-      const childContext = getEffectContext(child);
-      const childKey = childContext.key;
+      const childKey = child.key;
       const childPinned = isEffectPinned(effect, childKey);
       _debugEffect(child, childPinned);
     }
@@ -242,35 +247,32 @@ function debugCleanups(context: EffectContext<any>) {
   const cleanups = context.cleanups;
   if (cleanups) {
     for (const cleanup of cleanups) {
-      const context = getEffectContext(cleanup);
       let text = `Cleanup: ${getName(cleanup)}`;
-      if (context.catch) {
-        text += ` [${getName(context.catch.catchFn)}]`;
+      if (cleanup.catch) {
+        text += ` [${getName(cleanup.catch.catchFnContext)}]`;
       }
       log(text);
     }
   }
 }
 
-function _debugEffect(effect: Effect<any>, pinned = false) {
-  const context = getEffectContext(effect);
-
-  debugEffectHeader(effect, pinned, context);
+function _debugEffect(effect: EffectContext<any>, pinned = false) {
+  debugEffectHeader(effect, pinned);
 
   withIndent(() => {
-    debugOnError(effect, context.catch);
+    debugOnError(effect, effect.catch);
     debugStates(effect);
-    debugChildren(effect, context);
-    debugCleanups(context);
+    debugChildren(effect);
+    debugCleanups(effect);
   });
 }
 
 function getCatchStack(c: Catch): string {
   if (c.lastCatch) {
-    return `${getName(c.catchFn)} (from ${getName(
+    return `${getName(c.catchFnContext)} (from ${getName(
       c.onErrorEffect,
     )}) -> ${getCatchStack(c.lastCatch)}`;
   } else {
-    return `${getName(c.catchFn)} (from ${getName(c.onErrorEffect)})`;
+    return `${getName(c.catchFnContext)} (from ${getName(c.onErrorEffect)})`;
   }
 }

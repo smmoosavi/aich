@@ -1,4 +1,4 @@
-import { getCurrentEffect, type Effect } from './effect';
+import { type EffectContext, getCurrentEffect } from './effect';
 import { enqueue } from './queue';
 import { getRoot } from './root';
 import type { State } from './state';
@@ -11,8 +11,8 @@ declare module './root' {
 }
 
 interface Subs {
-  byEffect: WeakMap<Effect, Set<State<any>>>;
-  byState: WeakMap<State<any>, Set<Effect>>;
+  byEffect: WeakMap<EffectContext, Set<State<any>>>;
+  byState: WeakMap<State<any>, Set<EffectContext>>;
 }
 
 export function getSubs(): Subs {
@@ -56,7 +56,7 @@ export function notify(state: State<any>) {
   }
 }
 
-export function clearEffectSubs(effect: Effect) {
+export function clearEffectSubs(effect: EffectContext) {
   const subs = getSubs();
   const stateSet = subs.byEffect.get(effect);
   if (stateSet) {

@@ -1,5 +1,5 @@
 import type { Branded } from './brand';
-import { getCurrentEffect, getEffectContext, type Effect } from './effect';
+import { type EffectContext, getCurrentEffect } from './effect';
 import { type PinKey } from './pin-key';
 
 type Pinned<T> = Branded<T, 'pinned'>;
@@ -17,8 +17,7 @@ declare module './effect' {
   }
 }
 
-function getPinContext(effect: Effect): PinContext {
-  const context = getEffectContext(effect);
+function getPinContext(context: EffectContext): PinContext {
   if (!context.pinContext) {
     context.pinContext = {
       byKey: new Map(),
@@ -30,11 +29,11 @@ function getPinContext(effect: Effect): PinContext {
 }
 
 export function getPinnedValueOrElse<T>(
-  effect: Effect,
+  effectContext: EffectContext,
   key: PinKey,
   init: () => T,
 ): T {
-  const pinContext = getPinContext(effect);
+  const pinContext = getPinContext(effectContext);
   const accessedKeys = pinContext.accessedKeys;
   accessedKeys.add(key);
   if (pinContext.byKey.has(key)) {
@@ -56,8 +55,8 @@ export function pin<T>(init: () => T, key: PinKey): Pinned<T> {
   return getPinnedValueOrElse(effect, key, init) as Pinned<T>;
 }
 
-export function cleanupUnusedPins(effect: Effect): void {
-  const pinContext = getPinContext(effect);
+export function cleanupUnusedPins(effectContext: EffectContext): void {
+  const pinContext = getPinContext(effectContext);
   const accessedKeys = pinContext.accessedKeys;
   const keysToDelete: PinKey[] = [];
 

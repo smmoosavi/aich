@@ -1,5 +1,5 @@
 import type { Branded } from './brand';
-import { getCurrentEffect, getEffectContext, type Effect } from './effect';
+import { type EffectContext, getCurrentEffect } from './effect';
 
 export type PinKey = Branded<string, 'pin-key'>;
 
@@ -11,27 +11,25 @@ declare module './effect' {
   }
 }
 
-export function getDefinedPinKeys(effect: Effect): Set<PinKey> {
-  const context = getEffectContext(effect);
+export function getDefinedPinKeys(context: EffectContext): Set<PinKey> {
   if (!context.definedKeys) {
     context.definedKeys = new Set();
   }
   return context.definedKeys;
 }
 
-export function nextPinKeyIndex(effect: Effect | null): number {
-  if (!effect) {
+export function nextPinKeyIndex(context: EffectContext | null): number {
+  if (!context) {
     return -1;
   }
-  const context = getEffectContext(effect);
+
   if (context.pinIndex === undefined) {
     context.pinIndex = 0;
   }
   return context.pinIndex++;
 }
 
-export function resetPinKey(effect: Effect): void {
-  const context = getEffectContext(effect);
+export function resetPinKey(context: EffectContext): void {
   context.pinIndex = undefined;
   context.definedKeys = undefined;
 }

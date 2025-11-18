@@ -1,7 +1,7 @@
 import {
   addChildEffect,
   disposeChildEffects,
-  getChildEffect,
+  getChildContext,
 } from './children';
 import { runCleanups } from './cleanup';
 import {
@@ -30,13 +30,15 @@ export type DisposeFn = () => void;
 const EFFECT = Symbol('EFFECT');
 export interface EffectHandle<R> {
   /** @internal */
-  [EFFECT]: Effect<R>;
+  [EFFECT]: EffectContext<R>;
   pin: PinEffectFn<R>;
   dispose: DisposeFn;
   result: { current: R | undefined };
 }
 
 export interface EffectContext<R = unknown> {
+  effect?: Effect<R>;
+  catchFn?: CatchFn;
   key: PinKey;
   result: { current: R | undefined };
 }
@@ -44,49 +46,39 @@ export interface EffectContext<R = unknown> {
 /** @internal */
 declare module './root' {
   interface Root {
-    currentEffect?: Effect | null;
-    effectContext?: WeakMap<Effect | CatchFn, EffectContext>;
+    currentContext?: EffectContext;
   }
 }
 
 export function getOrCreateEffectContext<R>(
-  parent: Effect | null,
+  parent: EffectContext | undefined,
   effect: Effect<R> | CatchFn,
   key: PinKey,
 ): EffectContext<R> {
-  const root = getRoot();
-  if (!root.effectContext) {
-    root.effectContext = new WeakMap();
-  }
-
   if (parent) {
-    const existingEffect = getChildEffect(parent, key);
-    if (existingEffect) {
-      const context = root.effectContext.get(existingEffect);
-      if (context) {
-        root.effectContext.set(effect, context);
-        return context as EffectContext<R>;
-      }
+    const existingContext = getChildContext(parent, key);
+    if (existingContext) {
+      existingContext.effect = isEffect(effect) ? effect : undefined;
+      existingContext.catchFn = isEffect(effect) ? undefined : effect;
+      return existingContext as EffectContext<R>;
     }
   }
-  const context = { key, result: { current: undefined } };
-  root.effectContext.set(effect, context);
+  const context = {
+    effect: isEffect(effect) ? effect : undefined,
+    catchFn: isEffect(effect) ? undefined : effect,
+    key,
+    result: { current: undefined },
+  };
   return context as EffectContext<R>;
 }
 
-export function getEffectContext<R>(
-  effect: Effect<R> | CatchFn,
-): EffectContext<R> {
-  const root = getRoot();
-  let context = root.effectContext?.get(effect);
-  if (!context) {
-    throw new Error('Effect context not found');
-  }
-
-  return context as EffectContext<R>;
+function isEffect(effect: Effect | CatchFn): effect is Effect {
+  return effect.length === 0;
 }
 
-export function getEffectFromHandle(handle: EffectHandle<any>): Effect<any> {
+export function getEffectFromHandle(
+  handle: EffectHandle<any>,
+): EffectContext<any> {
   return handle[EFFECT];
 }
 
@@ -94,21 +86,21 @@ export function effect<R>(
   fn: Effect<R>,
   key?: string | number,
 ): EffectHandle<R> {
-  setName(fn, 'EF', key);
   const root = getRoot();
-  const parentEffect = root.currentEffect ?? null;
+  const parentContext = root.currentContext;
   const effectKey = pinKey('EFFECT', key);
-  const context = getOrCreateEffectContext(parentEffect, fn, effectKey);
-  const dispose = createDisposeFn(fn);
-  const pinHandle = { [EFFECT]: fn, dispose, result: context.result };
-  const pin = createPinEffectFn(fn, parentEffect, effectKey, pinHandle);
-  const handle = { [EFFECT]: fn, pin, dispose, result: context.result };
-  parentEffect && markEffectAsUsed(parentEffect, effectKey);
+  const context = getOrCreateEffectContext(parentContext, fn, effectKey);
+  setName(context, 'EF', key);
+  const dispose = createDisposeFn(context);
+  const pinHandle = { [EFFECT]: context, dispose, result: context.result };
+  const pin = createPinEffectFn(parentContext, effectKey, pinHandle);
+  const handle = { [EFFECT]: context, pin, dispose, result: context.result };
+  parentContext && markEffectAsUsed(parentContext, effectKey);
 
-  if (!isEffectPinned(parentEffect, effectKey)) {
-    enqueue(fn);
-    parentEffect && addChildEffect(parentEffect, fn, effectKey);
-    parentEffect && addChildCatch(parentEffect, fn);
+  if (!isEffectPinned(parentContext, effectKey)) {
+    enqueue(context);
+    parentContext && addChildEffect(parentContext, context, effectKey);
+    parentContext && addChildCatch(parentContext, context);
   }
   return handle;
 }
@@ -117,66 +109,68 @@ export function immediate<R>(
   fn: Effect<R>,
   key?: string | number,
 ): EffectHandle<R> {
-  setName(fn, 'IM', key);
   const root = getRoot();
-  const parentEffect = root.currentEffect ?? null;
+  const parentEffect = root.currentContext;
   const effectKey = pinKey('EFFECT', key);
   const context = getOrCreateEffectContext(parentEffect, fn, effectKey);
-  const dispose = createDisposeFn(fn);
-  const pinHandle = { [EFFECT]: fn, dispose, result: context.result };
-  const pin = createPinEffectFn(fn, parentEffect, effectKey, pinHandle);
-  const handle = { [EFFECT]: fn, pin, dispose, result: context.result };
+  setName(context, 'IM', key);
+  const dispose = createDisposeFn(context);
+  const pinHandle = { [EFFECT]: context, dispose, result: context.result };
+  const pin = createPinEffectFn(parentEffect, effectKey, pinHandle);
+  const handle = { [EFFECT]: context, pin, dispose, result: context.result };
   parentEffect && markEffectAsUsed(parentEffect, effectKey);
 
   if (!isEffectPinned(parentEffect, effectKey)) {
-    enqueue(fn);
-    parentEffect && addChildEffect(parentEffect, fn, effectKey);
-    parentEffect && addChildCatch(parentEffect, fn);
-    runEffect(fn);
+    enqueue(context);
+    parentEffect && addChildEffect(parentEffect, context, effectKey);
+    parentEffect && addChildCatch(parentEffect, context);
+    runEffect(context);
   }
   return handle;
 }
 
-export function createDisposeFn(effect: Effect): DisposeFn {
+export function createDisposeFn(context: EffectContext): DisposeFn {
   const dispose = () => {
-    disposeEffect(effect, true);
+    disposeEffect(context, true);
   };
   return dispose;
 }
 
-export function disposeEffect(effect: Effect, unmount: boolean) {
-  dropEffect(effect);
-  disposeChildEffects(effect, unmount);
-  runCleanups(effect);
-  clearEffectSubs(effect);
-  cleanupUnusedPins(effect);
-  clearUsedEffects(effect);
-  resetPinKey(effect);
-  disposeEffectCatch(effect);
+export function disposeEffect(context: EffectContext, unmount: boolean) {
+  dropEffect(context);
+  disposeChildEffects(context, unmount);
+  runCleanups(context);
+  clearEffectSubs(context);
+  cleanupUnusedPins(context);
+  clearUsedEffects(context);
+  resetPinKey(context);
+  disposeEffectCatch(context);
 }
 
-export function getCurrentEffect(): Effect | null {
-  return getRoot().currentEffect ?? null;
+export function getCurrentEffect(): EffectContext | null {
+  return getRoot().currentContext ?? null;
 }
 
-export function runEffect<R>(effect: Effect<R>) {
-  withEffect(effect, () => {
-    disposeEffect(effect, false);
-    const context = getEffectContext(effect);
-    context.result.current = effect();
-    disposeUnusedPinnedEffects(effect);
+export function runEffect<R>(context: EffectContext<R>) {
+  withEffect(context, () => {
+    disposeEffect(context, false);
+    context.result.current = context.effect?.();
+    disposeUnusedPinnedEffects(context);
   });
 }
 
-export function withEffect(effect: Effect | undefined, fn: () => void): void {
+export function withEffect(
+  context: EffectContext | undefined,
+  fn: () => void,
+): void {
   const root = getRoot();
-  const lastEffect = root.currentEffect;
-  root.currentEffect = effect;
+  const lastContext = root.currentContext;
+  root.currentContext = context;
   try {
     fn();
   } catch (e) {
-    catchError(e, effect);
+    catchError(e, context);
   } finally {
-    root.currentEffect = lastEffect;
+    root.currentContext = lastContext;
   }
 }

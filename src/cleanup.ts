@@ -1,10 +1,10 @@
 import { setName } from './debug';
 import {
   getCurrentEffect,
-  getEffectContext,
   getOrCreateEffectContext,
   withEffect,
   type Effect,
+  type EffectContext,
 } from './effect';
 import { forEach } from './iter';
 import { addChildCatch, catchError } from './on-error';
@@ -13,44 +13,45 @@ import { pinKey } from './pin-key';
 /** @internal */
 declare module './effect' {
   interface EffectContext {
-    cleanups?: Set<Effect>;
+    cleanups?: Set<EffectContext>;
   }
 }
 
 export function cleanup(effect: Effect, key?: string | number): void {
-  setName(effect, 'CL', key);
   const parent = getCurrentEffect();
   if (!parent) {
     throw new Error('cleanup() must be called within an executing effect');
   }
-  getOrCreateEffectContext(parent, effect, pinKey('CLEANUP'));
-  addCleanupEffect(parent, effect);
+  const context = getOrCreateEffectContext(parent, effect, pinKey('CLEANUP'));
+  setName(context, 'CL', key);
+  addCleanupEffect(parent, context);
 }
 
-export function getCleanups(effect: Effect): Set<Effect> {
-  const context = getEffectContext(effect);
+export function getCleanups(context: EffectContext): Set<EffectContext> {
   if (!context.cleanups) {
     context.cleanups = new Set();
   }
   return context.cleanups;
 }
 
-export function addCleanupEffect(parent: Effect, cleanup: Effect) {
+export function addCleanupEffect(
+  parent: EffectContext,
+  cleanup: EffectContext,
+) {
   addChildCatch(parent, cleanup);
   const cleanups = getCleanups(parent);
   cleanups.add(cleanup);
 }
 
-export function runCleanups(effect: Effect) {
+export function runCleanups(context: EffectContext) {
   withEffect(undefined, () => {
-    const context = getEffectContext(effect);
     const effectCleanups = context.cleanups;
     try {
       if (effectCleanups) {
         forEach(Array.from(effectCleanups).reverse(), (cleanup) => {
           effectCleanups.delete(cleanup);
           try {
-            cleanup();
+            cleanup.effect?.();
           } catch (e) {
             catchError(e, cleanup);
           }
