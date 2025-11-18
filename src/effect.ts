@@ -1,8 +1,4 @@
-import {
-  addChildEffect,
-  disposeChildEffects,
-  getChildContext,
-} from './children';
+import { addChildEffect, disposeChildEffects } from './children';
 import { runCleanups } from './cleanup';
 import {
   addChildCatch,
@@ -24,6 +20,11 @@ import {
 } from './pin-effect';
 import { setName } from './debug';
 import { clearUsedEffects, markEffectAsUsed } from './used-effect';
+import {
+  cacheContext,
+  clearUnusedCachedContexts,
+  getCachedContext,
+} from './context-cache';
 
 export type Effect<R = void> = () => R;
 export type DisposeFn = () => void;
@@ -55,8 +56,9 @@ export function getOrCreateEffectContext<R>(
   effect: Effect<R> | CatchFn,
   key: PinKey,
 ): EffectContext<R> {
+  parent && markEffectAsUsed(parent, key);
   if (parent) {
-    const existingContext = getChildContext(parent, key);
+    const existingContext = getCachedContext(parent, key);
     if (existingContext) {
       existingContext.effect = isEffect(effect) ? effect : undefined;
       existingContext.catchFn = isEffect(effect) ? undefined : effect;
@@ -69,6 +71,7 @@ export function getOrCreateEffectContext<R>(
     key,
     result: { current: undefined },
   };
+  parent && cacheContext(parent, key, context);
   return context as EffectContext<R>;
 }
 
@@ -95,7 +98,6 @@ export function effect<R>(
   const pinHandle = { [EFFECT]: context, dispose, result: context.result };
   const pin = createPinEffectFn(parentContext, effectKey, pinHandle);
   const handle = { [EFFECT]: context, pin, dispose, result: context.result };
-  parentContext && markEffectAsUsed(parentContext, effectKey);
 
   if (!isEffectPinned(parentContext, effectKey)) {
     enqueue(context);
@@ -118,7 +120,6 @@ export function immediate<R>(
   const pinHandle = { [EFFECT]: context, dispose, result: context.result };
   const pin = createPinEffectFn(parentEffect, effectKey, pinHandle);
   const handle = { [EFFECT]: context, pin, dispose, result: context.result };
-  parentEffect && markEffectAsUsed(parentEffect, effectKey);
 
   if (!isEffectPinned(parentEffect, effectKey)) {
     enqueue(context);
@@ -140,6 +141,7 @@ export function disposeEffect(context: EffectContext, unmount: boolean) {
   dropEffect(context);
   disposeChildEffects(context, unmount);
   runCleanups(context);
+  clearUnusedCachedContexts(context);
   clearEffectSubs(context);
   cleanupUnusedPins(context);
   clearUsedEffects(context);

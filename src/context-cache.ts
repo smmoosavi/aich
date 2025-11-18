@@ -1,0 +1,37 @@
+import type { PinKey } from './pin-key';
+import type { EffectContext } from './effect';
+import { isEffectUsed } from './used-effect';
+
+/** @internal */
+declare module './effect' {
+  interface EffectContext {
+    contextCache?: Map<PinKey, EffectContext>;
+  }
+}
+
+export function getCachedContext(
+  parent: EffectContext,
+  key: PinKey,
+): EffectContext | undefined {
+  return parent.contextCache?.get(key);
+}
+
+export function cacheContext(
+  parent: EffectContext,
+  key: PinKey,
+  context: EffectContext,
+) {
+  if (!parent.contextCache) {
+    parent.contextCache = new Map<PinKey, EffectContext>();
+  }
+  parent.contextCache.set(key, context);
+}
+
+export function clearUnusedCachedContexts(parent: EffectContext) {
+  parent.contextCache?.forEach((child) => {
+    const childKey = child.key;
+    if (!isEffectUsed(parent, childKey)) {
+      parent.contextCache?.delete(childKey);
+    }
+  });
+}
