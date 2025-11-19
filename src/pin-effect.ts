@@ -1,7 +1,5 @@
-import { disposeEffect, type EffectContext, type EffectHandle } from './effect';
+import { type EffectContext, type EffectHandle } from './effect';
 import type { PinKey } from './pin-key';
-import { getChildContext } from './children';
-import { isEffectUsed } from './used-effect';
 
 export type PinEffectFn<R = void> = () => Omit<EffectHandle<R>, 'pin'>;
 
@@ -43,20 +41,6 @@ export function isEffectPinned(parent: EffectContext | undefined, key: PinKey) {
   return parent?.pinnedEffects?.has(key) ?? false;
 }
 
-export function disposeUnusedPinnedEffects(context: EffectContext) {
-  const pinnedEffect = context.pinnedEffects;
-  if (pinnedEffect) {
-    for (const key of pinnedEffect) {
-      if (!isEffectUsed(context, key)) {
-        pinnedEffect.delete(key);
-        const child = getChildContext(context, key);
-        if (child) {
-          disposeEffect(child, true);
-        }
-      }
-    }
-    if (pinnedEffect.size === 0) {
-      context.pinnedEffects = undefined;
-    }
-  }
+export function removePinnedEffect(parentContext: EffectContext, key: PinKey) {
+  parentContext.pinnedEffects?.delete(key);
 }

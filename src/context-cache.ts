@@ -27,6 +27,10 @@ export function cacheContext(
   parent.contextCache.set(key, context);
 }
 
+export function removeCachedContext(parent: EffectContext, key: PinKey) {
+  parent.contextCache?.delete(key);
+}
+
 export function clearUnusedCachedContexts(parent: EffectContext) {
   parent.contextCache?.forEach((child) => {
     const childKey = child.key;

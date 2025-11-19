@@ -1,4 +1,8 @@
-import { addChildEffect, disposeChildEffects } from './children';
+import {
+  addChildEffect,
+  disposeChildEffects,
+  removeChildEffect,
+} from './children';
 import { runCleanups } from './cleanup';
 import {
   addChildCatch,
@@ -14,16 +18,22 @@ import { getRoot } from './root';
 import { clearEffectSubs } from './sub';
 import {
   createPinEffectFn,
-  disposeUnusedPinnedEffects,
   isEffectPinned,
   type PinEffectFn,
+  removePinnedEffect,
 } from './pin-effect';
 import { setName } from './debug';
-import { clearUsedEffects, markEffectAsUsed } from './used-effect';
+import {
+  clearUsedEffects,
+  markEffectAsUsed,
+  removeEffectFromUsed,
+  unmountUnusedEffects,
+} from './used-effect';
 import {
   cacheContext,
   clearUnusedCachedContexts,
   getCachedContext,
+  removeCachedContext,
 } from './context-cache';
 
 export type Effect<R = void> = () => R;
@@ -137,6 +147,13 @@ export function createDisposeFn(context: EffectContext): DisposeFn {
   return dispose;
 }
 
+export function removeEffect(parent: EffectContext, key: PinKey) {
+  removeChildEffect(parent, key);
+  removeCachedContext(parent, key);
+  removeEffectFromUsed(parent, key);
+  removePinnedEffect(parent, key);
+}
+
 export function disposeEffect(context: EffectContext, unmount: boolean) {
   dropEffect(context);
   disposeChildEffects(context, unmount);
@@ -157,7 +174,7 @@ export function runEffect<R>(context: EffectContext<R>) {
   withEffect(context, () => {
     disposeEffect(context, false);
     context.result.current = context.effect?.();
-    disposeUnusedPinnedEffects(context);
+    unmountUnusedEffects(context);
   });
 }
 

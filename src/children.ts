@@ -28,11 +28,8 @@ export function addChildEffect(
   children.set(key, child);
 }
 
-export function getChildContext(
-  parent: EffectContext,
-  key: PinKey,
-): EffectContext | undefined {
-  return parent.children?.get(key);
+export function removeChildEffect(parent: EffectContext, key: PinKey) {
+  parent.children?.delete(key);
 }
 
 export function disposeChildEffects(parent: EffectContext, unmount: boolean) {

@@ -1,5 +1,6 @@
 import type { PinKey } from './pin-key';
-import { type EffectContext } from './effect';
+import { disposeEffect, type EffectContext, removeEffect } from './effect';
+import { getEffectChildren } from './children';
 
 /** @internal */
 declare module './effect' {
@@ -17,6 +18,20 @@ export function markEffectAsUsed(parent: EffectContext, key: PinKey) {
 
 export function isEffectUsed(parent: EffectContext, key: PinKey): boolean {
   return parent.usedEffects?.has(key) ?? false;
+}
+
+export function removeEffectFromUsed(parent: EffectContext, key: PinKey) {
+  parent.usedEffects?.delete(key);
+}
+
+export function unmountUnusedEffects(context: EffectContext) {
+  const childKeys = Array.from(getEffectChildren(context)).reverse();
+  for (const [key, child] of childKeys) {
+    if (!isEffectUsed(context, key)) {
+      disposeEffect(child, true);
+      removeEffect(context, key);
+    }
+  }
 }
 
 export function clearUsedEffects(context: EffectContext) {

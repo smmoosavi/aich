@@ -202,6 +202,89 @@ describe('pin effect', () => {
     ]);
   });
 
+  test('pinning a nested effect in unpinned conditional effect', async () => {
+    const logs = createLogStore();
+    const flag = state(true);
+    const count1 = state(0);
+    const count2 = state(10);
+    const count3 = state(100);
+
+    // parent
+    const { dispose } = effect(() => {
+      const c1 = count1();
+      logs.push(`parent ran ${c1}`);
+
+      // unpinned middle
+      flag() &&
+        effect(() => {
+          const c2 = count2();
+          logs.push(`nested effect ran ${c2} in ${c1}`);
+
+          // pinned inner
+          effect(() => {
+            const c3 = count3();
+            logs.push(`deeply nested effect ran ${c3} in ${c2} in ${c1}`);
+
+            cleanup(() => {
+              logs.push(
+                `deeply nested effect cleaned up ${c3} in ${c2} in ${c1}`,
+              );
+            });
+          }).pin();
+
+          cleanup(() => {
+            logs.push(`nested effect cleaned up ${c2} in ${c1}`);
+          });
+        }, 'maybe');
+
+      cleanup(() => {
+        logs.push(`parent cleaned up ${c1}`);
+      });
+    });
+
+    await wait();
+    expect(logs.take()).toEqual([
+      'parent ran 0',
+      'nested effect ran 10 in 0',
+      'deeply nested effect ran 100 in 10 in 0',
+    ]);
+
+    count3(200);
+    await wait();
+    expect(logs.take()).toEqual([
+      'deeply nested effect cleaned up 100 in 10 in 0',
+      'deeply nested effect ran 200 in 10 in 0',
+    ]);
+
+    count2(20);
+    await wait();
+    expect(logs.take()).toEqual([
+      'nested effect cleaned up 10 in 0',
+      'nested effect ran 20 in 0',
+    ]);
+
+    count1(1);
+    await wait();
+    expect(logs.take()).toEqual([
+      'nested effect cleaned up 20 in 0',
+      'parent cleaned up 0',
+      'parent ran 1',
+      'nested effect ran 20 in 1',
+    ]);
+
+    flag(false);
+    await wait();
+    expect(logs.take()).toEqual([
+      'nested effect cleaned up 20 in 1',
+      'parent cleaned up 1',
+      'parent ran 1',
+      'deeply nested effect cleaned up 200 in 10 in 0',
+    ]);
+
+    dispose();
+    expect(logs.take()).toEqual(['parent cleaned up 1']);
+  });
+
   test('pinning a nested pin effect prevents re-running', async () => {
     const logs = createLogStore();
     const count1 = state(0);
