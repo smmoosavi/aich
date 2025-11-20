@@ -16,12 +16,6 @@ import { pinKey } from './pin-key';
 import { dropEffect, enqueue } from './queue';
 import { getRoot } from './root';
 import { clearEffectSubs } from './sub';
-import {
-  createPinEffectFn,
-  isEffectPinned,
-  type PinEffectFn,
-  removePinnedEffect,
-} from './pin-effect';
 import { setName } from './debug';
 import {
   clearUsedEffects,
@@ -42,7 +36,6 @@ const EFFECT = Symbol('EFFECT');
 export interface EffectHandle<R> {
   /** @internal */
   [EFFECT]: EffectContext<R>;
-  pin: PinEffectFn<R>;
   dispose: DisposeFn;
   result: { current: R | undefined };
 }
@@ -105,15 +98,11 @@ export function effect<R>(
   const context = getOrCreateEffectContext(parentContext, fn, effectKey);
   setName(context, 'EF', key);
   const dispose = createDisposeFn(context);
-  const pinHandle = { [EFFECT]: context, dispose, result: context.result };
-  const pin = createPinEffectFn(parentContext, effectKey, pinHandle);
-  const handle = { [EFFECT]: context, pin, dispose, result: context.result };
+  const handle = { [EFFECT]: context, dispose, result: context.result };
 
-  if (!isEffectPinned(parentContext, effectKey)) {
-    enqueue(context);
-    parentContext && addChildEffect(parentContext, context, effectKey);
-    parentContext && addChildCatch(parentContext, context);
-  }
+  enqueue(context);
+  parentContext && addChildEffect(parentContext, context, effectKey);
+  parentContext && addChildCatch(parentContext, context);
   return handle;
 }
 
@@ -127,16 +116,12 @@ export function immediate<R>(
   const context = getOrCreateEffectContext(parentEffect, fn, effectKey);
   setName(context, 'IM', key);
   const dispose = createDisposeFn(context);
-  const pinHandle = { [EFFECT]: context, dispose, result: context.result };
-  const pin = createPinEffectFn(parentEffect, effectKey, pinHandle);
-  const handle = { [EFFECT]: context, pin, dispose, result: context.result };
+  const handle = { [EFFECT]: context, dispose, result: context.result };
 
-  if (!isEffectPinned(parentEffect, effectKey)) {
-    enqueue(context);
-    parentEffect && addChildEffect(parentEffect, context, effectKey);
-    parentEffect && addChildCatch(parentEffect, context);
-    runEffect(context);
-  }
+  enqueue(context);
+  parentEffect && addChildEffect(parentEffect, context, effectKey);
+  parentEffect && addChildCatch(parentEffect, context);
+  runEffect(context);
   return handle;
 }
 
@@ -151,7 +136,6 @@ export function removeEffect(parent: EffectContext, key: PinKey) {
   removeChildEffect(parent, key);
   removeCachedContext(parent, key);
   removeEffectFromUsed(parent, key);
-  removePinnedEffect(parent, key);
 }
 
 export function disposeEffect(context: EffectContext, unmount: boolean) {

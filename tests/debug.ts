@@ -4,7 +4,6 @@ import {
   type EffectHandle,
 } from '../src/effect';
 import type { Catch } from '../src/on-error';
-import { isEffectPinned } from '../src/pin-effect';
 import { getRoot } from '../src/root';
 import { untrack } from '../src/sub';
 import type { State } from '../src/state';
@@ -192,11 +191,8 @@ export function debugEffect(
   });
 }
 
-function debugEffectHeader(effect: EffectContext<any>, pinned: boolean) {
+function debugEffectHeader(effect: EffectContext<any>) {
   let text = `Effect: ${getName(effect)}`;
-  if (pinned) {
-    text += ' (pinned)';
-  }
   if (effect.catch) {
     text += ` [${getName(effect.catch.catchFnContext)}]`;
   }
@@ -236,9 +232,7 @@ function debugChildren(effect: EffectContext<any>) {
   const children = effect.children;
   if (children) {
     for (const child of children.values()) {
-      const childKey = child.key;
-      const childPinned = isEffectPinned(effect, childKey);
-      _debugEffect(child, childPinned);
+      _debugEffect(child);
     }
   }
 }
@@ -256,8 +250,8 @@ function debugCleanups(context: EffectContext<any>) {
   }
 }
 
-function _debugEffect(effect: EffectContext<any>, pinned = false) {
-  debugEffectHeader(effect, pinned);
+function _debugEffect(effect: EffectContext<any>) {
+  debugEffectHeader(effect);
 
   withIndent(() => {
     debugOnError(effect, effect.catch);
