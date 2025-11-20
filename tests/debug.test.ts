@@ -9,6 +9,8 @@ import {
   enableDebugNames,
 } from './debug';
 import { createLogStore } from './log';
+import { pin } from '../src/pin';
+import { pinKey } from '../src/pin-key';
 
 describe('debug effect', () => {
   beforeAll(() => {
@@ -127,7 +129,49 @@ describe('debug effect', () => {
       "
     `);
   });
+  test('nested state and pin', () => {
+    resetDebug();
+    const logs = createLogStore();
+    const count = state(0, 'outer');
+    const e1 = effect(() => {
+      const inner = state(100, 'inner');
+      count();
+      inner();
+      pin(() => 42, pinKey('pin', 'key'));
+    });
+    flush();
+    debugEffect(e1, { logger: logs.push });
+    expect(logs.takeJoined()).toMatchInlineSnapshot(`
+      "
 
+      ------------ Effect: #EF1 ------------
+      Effect: #EF1
+        Pin: STATE:s:inner -> inner#ST2
+        Pin: pin:s:key
+        State: outer#ST1
+        State: inner#ST2
+      --------------------------------------
+
+      "
+    `);
+
+    count(1);
+    flush();
+    debugEffect(e1, { logger: logs.push, debugValue: true });
+    expect(logs.takeJoined()).toMatchInlineSnapshot(`
+      "
+
+      ------------ Effect: #EF1 ------------
+      Effect: #EF1
+        Pin: STATE:s:inner -> inner#ST2 = 100
+        Pin: pin:s:key = 42
+        State: outer#ST1 = 1
+        State: inner#ST2 = 100
+      --------------------------------------
+
+      "
+    `);
+  });
   test('nested effects', () => {
     resetDebug();
     const logs = createLogStore();
@@ -249,6 +293,8 @@ describe('debug effect', () => {
       const count1 = state(0);
       const count2 = state(0, 'with-key');
       const e1 = effect(function named() {
+        state(0);
+        pin(() => 42, pinKey('pin', 'key'));
         count1();
         count2();
         onError(() => {}, 'catch-all');
@@ -274,6 +320,8 @@ describe('debug effect', () => {
         Effect: [36mnamed[0m[90m#EF1[0m [[36m[0m[90m#CATCH2[0m]
           OnError [36mcatch-all[0m[90m#CATCH1[0m
           OnError [36m[0m[90m#CATCH2[0m [[36mcatch-all[0m[90m#CATCH1[0m (from [36mnamed[0m[90m#EF1[0m)]
+          Pin: STATE:i:0 -> [36m[0m[90m#ST3[0m
+          Pin: pin:s:key
           State: [36m[0m[90m#ST1[0m
           State: [36mwith-key[0m[90m#ST2[0m
           Effect: [36m[0m[90m#EF2[0m [[36m[0m[90m#CATCH3[0m]
