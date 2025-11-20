@@ -138,7 +138,7 @@ describe('debug effect', () => {
       effect(() => {
         count2();
       });
-      effect(() => {}).pin();
+      effect(() => {});
     });
     flush();
     debugEffect(e1, { logger: logs.push });
@@ -150,7 +150,7 @@ describe('debug effect', () => {
         State: #ST1
         Effect: #EF2
           State: #ST2
-        Effect: #EF3 (pinned)
+        Effect: #EF3
       --------------------------------------
 
       "
@@ -194,7 +194,7 @@ describe('debug effect', () => {
       effect(() => {
         cleanup(() => {});
       });
-      effect(() => {}).pin();
+      effect(() => {});
       cleanup(() => {});
     });
     flush();
@@ -211,7 +211,7 @@ describe('debug effect', () => {
           Cleanup: #CL2 [#CATCH3]
         Effect: #EF3 [#CATCH2]
           Cleanup: #CL3 [#CATCH2]
-        Effect: #EF4 (pinned) [#CATCH2]
+        Effect: #EF4 [#CATCH2]
         Cleanup: #CL1 [#CATCH2]
       --------------------------------------
 
@@ -260,7 +260,7 @@ describe('debug effect', () => {
         effect(() => {
           cleanup(() => {});
         });
-        effect(() => {}).pin();
+        effect(() => {});
         effect(() => {}, 'with-key');
         cleanup(() => {});
         cleanup(() => {}, 'with-key');
@@ -268,27 +268,27 @@ describe('debug effect', () => {
       flush();
       debugEffect(e1, { logger: logs.push });
       expect(logs.takeJoined()).toMatchInlineSnapshot(`
-      "
+        "
 
-      ------------ Effect: [36mnamed[0m[90m#EF1[0m ------------
-      Effect: [36mnamed[0m[90m#EF1[0m [[36m[0m[90m#CATCH2[0m]
-        OnError [36mcatch-all[0m[90m#CATCH1[0m
-        OnError [36m[0m[90m#CATCH2[0m [[36mcatch-all[0m[90m#CATCH1[0m (from [36mnamed[0m[90m#EF1[0m)]
-        State: [36m[0m[90m#ST1[0m
-        State: [36mwith-key[0m[90m#ST2[0m
-        Effect: [36m[0m[90m#EF2[0m [[36m[0m[90m#CATCH3[0m]
-          OnError [36m[0m[90m#CATCH3[0m [[36m[0m[90m#CATCH2[0m (from [36mnamed[0m[90m#EF1[0m) -> [36mcatch-all[0m[90m#CATCH1[0m (from [36mnamed[0m[90m#EF1[0m)]
-          Cleanup: [36m[0m[90m#CL3[0m [[36m[0m[90m#CATCH3[0m]
-        Effect: [36m[0m[90m#EF3[0m [[36m[0m[90m#CATCH2[0m]
-          Cleanup: [36m[0m[90m#CL4[0m [[36m[0m[90m#CATCH2[0m]
-        Effect: [36m[0m[90m#EF4[0m (pinned) [[36m[0m[90m#CATCH2[0m]
-        Effect: [36mwith-key[0m[90m#EF5[0m [[36m[0m[90m#CATCH2[0m]
-        Cleanup: [36m[0m[90m#CL1[0m [[36m[0m[90m#CATCH2[0m]
-        Cleanup: [36mwith-key[0m[90m#CL2[0m [[36m[0m[90m#CATCH2[0m]
-      -------------------------------------------
+        ------------ Effect: [36mnamed[0m[90m#EF1[0m ------------
+        Effect: [36mnamed[0m[90m#EF1[0m [[36m[0m[90m#CATCH2[0m]
+          OnError [36mcatch-all[0m[90m#CATCH1[0m
+          OnError [36m[0m[90m#CATCH2[0m [[36mcatch-all[0m[90m#CATCH1[0m (from [36mnamed[0m[90m#EF1[0m)]
+          State: [36m[0m[90m#ST1[0m
+          State: [36mwith-key[0m[90m#ST2[0m
+          Effect: [36m[0m[90m#EF2[0m [[36m[0m[90m#CATCH3[0m]
+            OnError [36m[0m[90m#CATCH3[0m [[36m[0m[90m#CATCH2[0m (from [36mnamed[0m[90m#EF1[0m) -> [36mcatch-all[0m[90m#CATCH1[0m (from [36mnamed[0m[90m#EF1[0m)]
+            Cleanup: [36m[0m[90m#CL3[0m [[36m[0m[90m#CATCH3[0m]
+          Effect: [36m[0m[90m#EF3[0m [[36m[0m[90m#CATCH2[0m]
+            Cleanup: [36m[0m[90m#CL4[0m [[36m[0m[90m#CATCH2[0m]
+          Effect: [36m[0m[90m#EF4[0m [[36m[0m[90m#CATCH2[0m]
+          Effect: [36mwith-key[0m[90m#EF5[0m [[36m[0m[90m#CATCH2[0m]
+          Cleanup: [36m[0m[90m#CL1[0m [[36m[0m[90m#CATCH2[0m]
+          Cleanup: [36mwith-key[0m[90m#CL2[0m [[36m[0m[90m#CATCH2[0m]
+        -------------------------------------------
 
-      "
-    `);
+        "
+      `);
     });
   });
 });

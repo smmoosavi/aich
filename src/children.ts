@@ -1,43 +1,48 @@
-import { disposeEffect, getEffectContext, type Effect } from './effect';
-import { isEffectPinned } from './pin-effect';
+import { disposeEffect, type EffectContext } from './effect';
+import type { PinKey } from './pin-key';
 
 /** @internal */
 declare module './effect' {
   interface EffectContext {
-    children?: Set<Effect>;
+    children?: Map<PinKey, EffectContext>;
   }
 }
 
-export function getEffectChildren(effect: Effect): Set<Effect> {
-  const context = getEffectContext(effect);
+export function getEffectChildren(
+  context: EffectContext,
+): Map<PinKey, EffectContext> {
   if (!context.children) {
-    context.children = new Set();
+    context.children = new Map();
   }
   return context.children;
 }
 
-export function addChildEffect(parent: Effect, child: Effect) {
+export function addChildEffect(
+  parent: EffectContext | undefined,
+  child: EffectContext,
+  key: PinKey,
+) {
+  if (!parent) {
+    return;
+  }
   const children = getEffectChildren(parent);
-  children.add(child);
+  children.set(key, child);
 }
 
-export function disposeChildEffects(parent: Effect, unmount: boolean) {
-  const context = getEffectContext(parent);
-  const childSet = context.children;
-  if (childSet) {
-    Array.from(childSet)
+export function removeChildEffect(parent: EffectContext, key: PinKey) {
+  parent.children?.delete(key);
+}
+
+export function disposeChildEffects(parent: EffectContext, unmount: boolean) {
+  const childMap = parent.children;
+  if (childMap) {
+    Array.from(childMap.entries())
       .reverse()
-      .forEach((child) => {
-        const childContext = getEffectContext(child);
-        const childKey = childContext.key;
-        if (!unmount && isEffectPinned(parent, childKey)) {
-          return;
-        }
-        childSet.delete(child);
-        disposeEffect(child, true);
+      .forEach(([childKey, child]) => {
+        disposeEffect(child, unmount);
       });
-    if (childSet.size === 0) {
-      context.children = undefined;
+    if (childMap.size === 0) {
+      parent.children = undefined;
     }
   }
 }

@@ -1,4 +1,4 @@
-import { runEffect, type Effect } from './effect';
+import { type EffectContext, runEffect } from './effect';
 import { forEach } from './iter';
 import { getRoot } from './root';
 
@@ -10,7 +10,7 @@ declare module './root' {
   }
 }
 
-export type Queue = Set<Effect>;
+export type Queue = Set<EffectContext>;
 
 export function getQueue(): Queue {
   const root = getRoot();
@@ -20,10 +20,10 @@ export function getQueue(): Queue {
   return root.queue;
 }
 
-export function enqueue(effect: Effect) {
+export function enqueue(context: EffectContext) {
   const root = getRoot();
   const queue = getQueue();
-  queue.add(effect);
+  queue.add(context);
   if (!root.flush) {
     root.flush = Promise.resolve().then(() => {
       flush();
@@ -31,9 +31,9 @@ export function enqueue(effect: Effect) {
   }
 }
 
-export function dropEffect(effect: Effect) {
+export function dropEffect(context: EffectContext) {
   const queue = getQueue();
-  queue.delete(effect);
+  queue.delete(context);
 }
 
 export function flush() {
@@ -41,8 +41,8 @@ export function flush() {
   const queue = getQueue();
 
   try {
-    forEach(queue, (effect) => {
-      runEffect(effect);
+    forEach(queue, (context) => {
+      runEffect(context);
     });
   } finally {
     root.flush = undefined;
