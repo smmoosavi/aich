@@ -18,10 +18,13 @@ export function getEffectChildren(
 }
 
 export function addChildEffect(
-  parent: EffectContext,
+  parent: EffectContext | undefined,
   child: EffectContext,
   key: PinKey,
 ) {
+  if (!parent) {
+    return;
+  }
   const children = getEffectChildren(parent);
   children.set(key, child);
 }

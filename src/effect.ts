@@ -59,7 +59,7 @@ export function getOrCreateEffectContext<R>(
   effect: Effect<R> | CatchFn,
   key: PinKey,
 ): EffectContext<R> {
-  parent && markEffectAsUsed(parent, key);
+  markEffectAsUsed(parent, key);
   if (parent) {
     const existingContext = getCachedContext(parent, key);
     if (existingContext) {
@@ -75,7 +75,7 @@ export function getOrCreateEffectContext<R>(
     disposed: true,
     result: { current: undefined },
   };
-  parent && cacheContext(parent, key, context);
+  cacheContext(parent, key, context);
   return context as EffectContext<R>;
 }
 
@@ -94,16 +94,16 @@ export function effect<R>(
   key?: string | number,
 ): EffectHandle<R> {
   const root = getRoot();
-  const parentContext = root.currentContext;
+  const parent = root.currentContext;
   const effectKey = pinKey('EFFECT', key);
-  const context = getOrCreateEffectContext(parentContext, fn, effectKey);
+  const context = getOrCreateEffectContext(parent, fn, effectKey);
   setName(context, 'EF', key);
   const dispose = createDisposeFn(context);
   const handle = { [EFFECT]: context, dispose, result: context.result };
 
   enqueue(context);
-  parentContext && addChildEffect(parentContext, context, effectKey);
-  parentContext && addChildCatch(parentContext, context);
+  addChildEffect(parent, context, effectKey);
+  addChildCatch(parent, context);
   return handle;
 }
 
@@ -112,16 +112,16 @@ export function immediate<R>(
   key?: string | number,
 ): EffectHandle<R> {
   const root = getRoot();
-  const parentEffect = root.currentContext;
+  const parent = root.currentContext;
   const effectKey = pinKey('EFFECT', key);
-  const context = getOrCreateEffectContext(parentEffect, fn, effectKey);
+  const context = getOrCreateEffectContext(parent, fn, effectKey);
   setName(context, 'IM', key);
   const dispose = createDisposeFn(context);
   const handle = { [EFFECT]: context, dispose, result: context.result };
 
   enqueue(context);
-  parentEffect && addChildEffect(parentEffect, context, effectKey);
-  parentEffect && addChildCatch(parentEffect, context);
+  addChildEffect(parent, context, effectKey);
+  addChildCatch(parent, context);
   runEffect(context);
   return handle;
 }

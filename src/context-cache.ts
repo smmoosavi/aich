@@ -9,17 +9,20 @@ declare module './effect' {
 }
 
 export function getCachedContext(
-  parent: EffectContext,
+  parent: EffectContext | undefined,
   key: PinKey,
 ): EffectContext | undefined {
-  return parent.contextCache?.get(key);
+  return parent?.contextCache?.get(key);
 }
 
 export function cacheContext(
-  parent: EffectContext,
+  parent: EffectContext | undefined,
   key: PinKey,
   context: EffectContext,
 ) {
+  if (!parent) {
+    return;
+  }
   if (!parent.contextCache) {
     parent.contextCache = new Map<PinKey, EffectContext>();
   }

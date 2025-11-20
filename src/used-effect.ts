@@ -9,7 +9,13 @@ declare module './effect' {
   }
 }
 
-export function markEffectAsUsed(parent: EffectContext, key: PinKey) {
+export function markEffectAsUsed(
+  parent: EffectContext | undefined,
+  key: PinKey,
+) {
+  if (!parent) {
+    return;
+  }
   if (!parent.usedEffects) {
     parent.usedEffects = new Set<PinKey>();
   }

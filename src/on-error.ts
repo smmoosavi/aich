@@ -61,8 +61,11 @@ export function addCatch(
  * @param parent
  * @param child
  */
-export function addChildCatch(parent: EffectContext, child: EffectContext) {
-  const parentCatch = parent.catch;
+export function addChildCatch(
+  parent: EffectContext | undefined,
+  child: EffectContext,
+) {
+  const parentCatch = parent?.catch;
   if (parentCatch) {
     let lastCatch: Catch | undefined = undefined;
     if (parentCatch.onErrorEffect === parent) {
@@ -77,7 +80,6 @@ export function addChildCatch(parent: EffectContext, child: EffectContext) {
     };
     child.catch = c;
     return c;
-  } else {
   }
 }
 
