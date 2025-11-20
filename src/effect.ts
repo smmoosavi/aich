@@ -21,11 +21,10 @@ import {
   clearUsedEffects,
   markEffectAsUsed,
   removeEffectFromUsed,
-  unmountUnusedEffects,
+  removeUnusedEffects,
 } from './used-effect';
 import {
   cacheContext,
-  clearUnusedCachedContexts,
   getCachedContext,
   removeCachedContext,
 } from './context-cache';
@@ -44,6 +43,7 @@ export interface EffectContext<R = unknown> {
   effect?: Effect<R>;
   catchFn?: CatchFn;
   key: PinKey;
+  disposed: boolean;
   result: { current: R | undefined };
 }
 
@@ -72,6 +72,7 @@ export function getOrCreateEffectContext<R>(
     effect: isEffect(effect) ? effect : undefined,
     catchFn: isEffect(effect) ? undefined : effect,
     key,
+    disposed: true,
     result: { current: undefined },
   };
   parent && cacheContext(parent, key, context);
@@ -140,9 +141,12 @@ export function removeEffect(parent: EffectContext, key: PinKey) {
 
 export function disposeEffect(context: EffectContext, unmount: boolean) {
   dropEffect(context);
+  if (context.disposed) {
+    return;
+  }
+  context.disposed = true;
   disposeChildEffects(context, unmount);
   runCleanups(context);
-  clearUnusedCachedContexts(context);
   clearEffectSubs(context);
   cleanupUnusedPins(context);
   clearUsedEffects(context);
@@ -158,7 +162,8 @@ export function runEffect<R>(context: EffectContext<R>) {
   withEffect(context, () => {
     disposeEffect(context, false);
     context.result.current = context.effect?.();
-    unmountUnusedEffects(context);
+    context.disposed = false;
+    removeUnusedEffects(context);
   });
 }
 

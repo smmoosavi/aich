@@ -1,6 +1,5 @@
 import type { PinKey } from './pin-key';
 import type { EffectContext } from './effect';
-import { isEffectUsed } from './used-effect';
 
 /** @internal */
 declare module './effect' {
@@ -29,13 +28,4 @@ export function cacheContext(
 
 export function removeCachedContext(parent: EffectContext, key: PinKey) {
   parent.contextCache?.delete(key);
-}
-
-export function clearUnusedCachedContexts(parent: EffectContext) {
-  parent.contextCache?.forEach((child) => {
-    const childKey = child.key;
-    if (!isEffectUsed(parent, childKey)) {
-      parent.contextCache?.delete(childKey);
-    }
-  });
 }

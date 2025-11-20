@@ -671,7 +671,7 @@ describe('effect with state', () => {
     expect(logs.take()).toEqual([
       'outer effect ran with 2',
       'middle effect ran with 20 in outer 2',
-      'inner effect ran with 100 in middle 20 in outer 2', // expect inner value be 200
+      'inner effect ran with 200 in middle 20 in outer 2',
     ]);
   });
 
