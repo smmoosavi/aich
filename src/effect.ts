@@ -43,6 +43,7 @@ export interface EffectContext<R = unknown> {
   effect?: Effect<R>;
   catchFn?: CatchFn;
   key: PinKey;
+  orderKey: OrderKey;
   disposed: boolean;
   result: { current: R | undefined };
 }
@@ -53,6 +54,9 @@ declare module './root' {
     currentContext?: EffectContext;
   }
 }
+
+type OrderKey = bigint;
+let lastOrderKey: OrderKey = 0n;
 
 export function getOrCreateEffectContext<R>(
   parent: EffectContext | undefined,
@@ -72,6 +76,7 @@ export function getOrCreateEffectContext<R>(
     effect: isEffect(effect) ? effect : undefined,
     catchFn: isEffect(effect) ? undefined : effect,
     key,
+    orderKey: lastOrderKey++,
     disposed: true,
     result: { current: undefined },
   };

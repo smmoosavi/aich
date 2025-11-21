@@ -10,14 +10,17 @@ tests/error-state.test.ts for a reproducer and more details.
 
 ## Effect order inconsistencies
 
-The current implementation of effect ordering has some inconsistencies, especially when dealing with nested effects.
+The current implementation uses an `orderKey` system where effects are sorted and executed based on the order they were created. This has resolved most ordering issues:
 
-Currently, the order of effect execution is determined by **the order in which state is set**, not by the order in which effects are defined. When multiple states are updated, effects are triggered in the order of the state updates that caused them to run.
+✅ **Fixed**: Parent effects now execute before their child effects
+✅ **Fixed**: Sibling effects execute in the order they were defined (creation order)
 
-The desired behavior is for effect execution order to be determined by **the order in which effects are defined**, following these rules:
+**Remaining issue:**
 
-1. **Parent before children**: Parent effects should always execute before their child effects
-2. **Immediates before effects**: Among siblings, `immediate` effects should execute before regular `effect` calls
-3. **Siblings by definition order**: Sibling effects should execute in the order they were defined
+When multiple sibling effects are triggered together, `immediate` effects do not get priority over regular `effect` calls. Both types of effects are ordered purely by their creation order (orderKey).
 
-See `tests/effect-order.test.ts` for complete test cases demonstrating these issues.
+The desired behavior for this remaining issue:
+
+- **Immediates before effects**: Among siblings, `immediate` effects should execute before regular `effect` calls when both are triggered in the same flush cycle
+
+See `tests/effect-order.test.ts` for complete test cases. Note that most test cases now pass - only the "immediate effects should run before sibling effects" scenario remains unresolved.

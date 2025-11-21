@@ -412,9 +412,11 @@ describe('effect with state', () => {
     expect(logs.take()).toEqual([
       'before: a=2, b=2',
       'effect A ran with 2',
+      // b updated
       'middle: a=2, b=3',
-      'effect B ran with 3',
+      // effects enqueued by b update
       'before: a=2, b=3',
+      'effect B ran with 3',
     ]);
   });
   test('self setting state in effect', async () => {
