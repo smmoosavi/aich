@@ -89,21 +89,31 @@ export function getEffectFromHandle(
   return handle[EFFECT];
 }
 
-export function effect<R>(
+function createEffect<R>(
   fn: Effect<R>,
-  key?: string | number,
-): EffectHandle<R> {
+  key: string | number | undefined,
+  debugName: string,
+): { handle: EffectHandle<R>; context: EffectContext<R> } {
   const root = getRoot();
   const parent = root.currentContext;
   const effectKey = pinKey('EFFECT', key);
   const context = getOrCreateEffectContext(parent, fn, effectKey);
-  setName(context, 'EF', key);
+  setName(context, debugName, key);
   const dispose = createDisposeFn(context);
   const handle = { [EFFECT]: context, dispose, result: context.result };
 
   enqueue(context);
   addChildEffect(parent, context, effectKey);
   addChildCatch(parent, context);
+
+  return { handle, context };
+}
+
+export function effect<R>(
+  fn: Effect<R>,
+  key?: string | number,
+): EffectHandle<R> {
+  const { handle } = createEffect(fn, key, 'EF');
   return handle;
 }
 
@@ -111,17 +121,7 @@ export function immediate<R>(
   fn: Effect<R>,
   key?: string | number,
 ): EffectHandle<R> {
-  const root = getRoot();
-  const parent = root.currentContext;
-  const effectKey = pinKey('EFFECT', key);
-  const context = getOrCreateEffectContext(parent, fn, effectKey);
-  setName(context, 'IM', key);
-  const dispose = createDisposeFn(context);
-  const handle = { [EFFECT]: context, dispose, result: context.result };
-
-  enqueue(context);
-  addChildEffect(parent, context, effectKey);
-  addChildCatch(parent, context);
+  const { handle, context } = createEffect(fn, key, 'IM');
   runEffect(context);
   return handle;
 }
