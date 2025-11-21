@@ -7,7 +7,6 @@ type Pinned<T> = Branded<T, 'pinned'>;
 interface PinContext {
   byKey: Map<PinKey, Pinned<any>>;
   accessedKeys: Set<PinKey>;
-  stickyKeys: Set<PinKey>;
 }
 
 /** @internal */
@@ -22,7 +21,6 @@ function getPinContext(context: EffectContext): PinContext {
     context.pinContext = {
       byKey: new Map(),
       accessedKeys: new Set(),
-      stickyKeys: new Set(),
     };
   }
   return context.pinContext;
@@ -61,8 +59,8 @@ export function cleanupUnusedPins(effectContext: EffectContext): void {
   const keysToDelete: PinKey[] = [];
 
   for (const [key] of pinContext.byKey) {
-    // Keep the pin if it was accessed or is sticky
-    if (!accessedKeys.has(key) && !pinContext.stickyKeys.has(key)) {
+    // Keep the pin if it was accessed
+    if (!accessedKeys.has(key)) {
       keysToDelete.push(key);
     }
   }
@@ -73,22 +71,4 @@ export function cleanupUnusedPins(effectContext: EffectContext): void {
 
   // Clear accessed keys for next run
   accessedKeys.clear();
-}
-
-export function unpin(key: PinKey): void {
-  const effect = getCurrentEffect();
-  if (effect) {
-    const pinContext = getPinContext(effect);
-    pinContext.byKey.delete(key);
-    pinContext.accessedKeys.delete(key);
-    pinContext.stickyKeys.delete(key);
-  }
-}
-
-export function sticky(key: PinKey): void {
-  const effect = getCurrentEffect();
-  if (effect) {
-    const pinContext = getPinContext(effect);
-    pinContext.stickyKeys.add(key);
-  }
 }

@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { pin, unpin, sticky } from '../src/pin';
+import { pin } from '../src/pin';
 import { effect } from '../src';
 import { state } from '../src/state';
 import { wait } from './wait';
@@ -152,97 +152,6 @@ describe('pin', () => {
       ['c', 3],
       ['b', 6],
       ['a', 1],
-    ]);
-  });
-
-  test('unpin removes cached value', async () => {
-    let callCount = 0;
-    const logs = createLogStore();
-    const rerun = state({});
-
-    const { result } = effect(() => {
-      rerun();
-      const key = pinKey('', 'test-key');
-      const value = pin(() => {
-        callCount++;
-        logs.push(`pin called ${callCount}`);
-        return { value: callCount };
-      }, key);
-
-      unpin(key);
-
-      return value;
-    });
-
-    await wait();
-
-    const result1 = result.current;
-    rerun({});
-    await wait();
-    const result2 = result.current;
-
-    expect(logs.take()).toEqual(['pin called 1', 'pin called 2']);
-    expect(result1?.value).toBe(1);
-    expect(result2?.value).toBe(2);
-  });
-
-  test('sticky pins persist while non-sticky are cleaned up', async () => {
-    const count = state(0);
-    const logs = createLogStore();
-
-    const { result } = effect(() => {
-      const c = count();
-      logs.push(`effect run ${c}`);
-
-      const results: any[] = [];
-
-      if (count() % 2 === 0) {
-        const key = pinKey('', 'sticky-key');
-        // Only access pins on even counts
-        const stickyValue = pin(() => {
-          logs.push(`sticky pin called ${c}`);
-          return { type: 'sticky', value: c };
-        }, key);
-        sticky(key); // Mark as sticky
-
-        const nonStickyValue = pin(
-          () => {
-            logs.push(`non-sticky pin called ${c}`);
-            return { type: 'non-sticky', value: c };
-          },
-          pinKey('', 'non-sticky-key'),
-        );
-
-        results.push(stickyValue, nonStickyValue);
-      }
-
-      return results;
-    });
-
-    await wait();
-    expect(logs.take()).toEqual([
-      'effect run 0',
-      'sticky pin called 0',
-      'non-sticky pin called 0',
-    ]);
-    expect(result.current).toEqual([
-      { type: 'sticky', value: 0 },
-      { type: 'non-sticky', value: 0 },
-    ]);
-
-    // Change state to trigger effect rerun
-    count(1);
-    await wait();
-    expect(logs.take()).toEqual(['effect run 1']);
-    expect(result.current).toEqual([]);
-
-    // Change state to trigger effect rerun
-    count(2);
-    await wait();
-    expect(logs.take()).toEqual(['effect run 2', 'non-sticky pin called 2']);
-    expect(result.current).toEqual([
-      { type: 'sticky', value: 0 },
-      { type: 'non-sticky', value: 2 },
     ]);
   });
 });
