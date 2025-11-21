@@ -40,8 +40,8 @@ describe('effect order', () => {
     countA(30);
     flush();
     expect(logs.take()).toEqual([
-      'inner B effect ran with 300 in outer 0', // unwanted: order of child effect should be kept
       'inner A effect ran with 30 in outer 0',
+      'inner B effect ran with 300 in outer 0',
     ]);
 
     // o a
@@ -60,7 +60,6 @@ describe('effect order', () => {
     countO(2);
     flush();
     expect(logs.take()).toEqual([
-      'inner A effect ran with 50 in outer 1', // unwanted: this call should not happen before outer effect
       'outer effect ran with 2',
       'outer effect end with 2',
       'inner A effect ran with 50 in outer 2',
@@ -107,8 +106,8 @@ describe('effect order', () => {
     countA(30);
     flush();
     expect(logs.take()).toEqual([
-      'inner B immediate ran with 300 in outer 0',
       'inner A effect ran with 30 in outer 0',
+      'inner B immediate ran with 300 in outer 0',
     ]);
 
     // o a
@@ -127,7 +126,6 @@ describe('effect order', () => {
     countO(2);
     flush();
     expect(logs.take()).toEqual([
-      'inner A effect ran with 50 in outer 1', // unwanted: this call should not happen before outer effect
       'outer effect ran with 2',
       'inner B immediate ran with 300 in outer 2',
       'outer effect end with 2',
@@ -139,7 +137,6 @@ describe('effect order', () => {
     countO(3);
     flush();
     expect(logs.take()).toEqual([
-      'inner B immediate ran with 60 in outer 2', // unwanted: this call should not happen before outer effect
       'outer effect ran with 3',
       'inner B immediate ran with 60 in outer 3',
       'outer effect end with 3',

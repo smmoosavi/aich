@@ -1,5 +1,5 @@
 import { type EffectContext, runEffect } from './effect';
-import { forEach } from './iter';
+import { forEach, loop, STOP } from './iter';
 import { getRoot } from './root';
 
 /** @internal */
@@ -41,8 +41,18 @@ export function flush() {
   const queue = getQueue();
 
   try {
-    forEach(queue, (context) => {
-      runEffect(context);
+    loop(() => {
+      if (queue.size === 0) {
+        return STOP;
+      }
+      const sortedContexts = sortQueueByOrderKey(queue);
+      queue.clear();
+      sortedContexts.forEach((context) => queue.add(context));
+      forEach(sortedContexts, (context) => {
+        if (queue.has(context)) {
+          runEffect(context);
+        }
+      });
     });
   } finally {
     root.flush = undefined;
@@ -56,4 +66,12 @@ export function assertQueueEmpty() {
       `Expected queue to be empty, but found ${queue.size} pending effects.`,
     );
   }
+}
+
+function sortQueueByOrderKey(queue: Queue): EffectContext[] {
+  return Array.from(queue).sort((a, b) => {
+    if (a.orderKey < b.orderKey) return -1;
+    if (a.orderKey > b.orderKey) return 1;
+    return 0;
+  });
 }
